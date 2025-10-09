@@ -7,13 +7,15 @@ import App from "@/app/App";
 export default async function EmbedPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
+  const { slug } = await params;
+
   // Fetch agent by slug from database
   const agent = await db
     .select()
     .from(agents)
-    .where(eq(agents.slug, params.slug))
+    .where(eq(agents.slug, slug))
     .limit(1);
 
   // If agent doesn't exist, show 404
