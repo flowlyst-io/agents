@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { ChatKitPanel, type FactAction } from "@/components/ChatKitPanel";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
-export default function App() {
+export default function App({ workflowId }: { workflowId?: string }) {
   const { scheme, setScheme } = useColorScheme();
 
   const handleWidgetAction = useCallback(async (action: FactAction) => {
@@ -23,6 +23,7 @@ export default function App() {
     <main className="flex min-h-screen flex-col items-center justify-center bg-slate-100 px-6 py-6 dark:bg-slate-950">
       <div className="mx-auto w-full max-w-5xl">
         <ChatKitPanel
+          workflowId={workflowId}
           theme={scheme}
           onWidgetAction={handleWidgetAction}
           onResponseEnd={handleResponseEnd}

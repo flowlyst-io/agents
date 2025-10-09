@@ -20,6 +20,7 @@ export type FactAction = {
 
 type ChatKitPanelProps = {
   theme: ColorScheme;
+  workflowId?: string;
   onWidgetAction: (action: FactAction) => Promise<void>;
   onResponseEnd: () => void;
   onThemeRequest: (scheme: ColorScheme) => void;
@@ -44,6 +45,7 @@ const createInitialErrors = (): ErrorState => ({
 
 export function ChatKitPanel({
   theme,
+  workflowId,
   onWidgetAction,
   onResponseEnd,
   onThemeRequest,
@@ -130,14 +132,15 @@ export function ChatKitPanel({
     };
   }, [scriptStatus, setErrorState]);
 
+  const resolvedWorkflowId = workflowId ?? WORKFLOW_ID;
   const isWorkflowConfigured = Boolean(
-    WORKFLOW_ID && !WORKFLOW_ID.startsWith("wf_replace")
+    resolvedWorkflowId && !resolvedWorkflowId.startsWith("wf_replace")
   );
 
   useEffect(() => {
     if (!isWorkflowConfigured && isMountedRef.current) {
       setErrorState({
-        session: "Set NEXT_PUBLIC_CHATKIT_WORKFLOW_ID in your .env.local file.",
+        session: "No workflow ID configured. Either pass workflowId prop or set NEXT_PUBLIC_CHATKIT_WORKFLOW_ID in your .env.local file.",
         retryable: false,
       });
       setIsInitializingSession(false);
@@ -161,14 +164,14 @@ export function ChatKitPanel({
       if (isDev) {
         console.info("[ChatKitPanel] getClientSecret invoked", {
           currentSecretPresent: Boolean(currentSecret),
-          workflowId: WORKFLOW_ID,
+          workflowId: resolvedWorkflowId,
           endpoint: CREATE_SESSION_ENDPOINT,
         });
       }
 
       if (!isWorkflowConfigured) {
         const detail =
-          "Set NEXT_PUBLIC_CHATKIT_WORKFLOW_ID in your .env.local file.";
+          "No workflow ID configured. Either pass workflowId prop or set NEXT_PUBLIC_CHATKIT_WORKFLOW_ID in your .env.local file.";
         if (isMountedRef.current) {
           setErrorState({ session: detail, retryable: false });
           setIsInitializingSession(false);
@@ -190,7 +193,7 @@ export function ChatKitPanel({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            workflow: { id: WORKFLOW_ID },
+            workflowId: resolvedWorkflowId,
           }),
         });
 
@@ -251,7 +254,7 @@ export function ChatKitPanel({
         }
       }
     },
-    [isWorkflowConfigured, setErrorState]
+    [isWorkflowConfigured, resolvedWorkflowId, setErrorState]
   );
 
   const chatkit = useChatKit({
@@ -339,7 +342,7 @@ export function ChatKitPanel({
       hasControl: Boolean(chatkit.control),
       scriptStatus,
       hasError: Boolean(blockingError),
-      workflowId: WORKFLOW_ID,
+      workflowId: resolvedWorkflowId,
     });
   }
 
