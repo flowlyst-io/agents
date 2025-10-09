@@ -6,7 +6,7 @@ This repository is the simplest way to bootstrap a [ChatKit](http://openai.githu
 
 - Next.js app with `<openai-chatkit>` web component and theming controls
 - API endpoint for creating a session at [`app/api/create-session/route.ts`](app/api/create-session/route.ts)
-- Quick examples for starter prompts, placeholder text, and greating message
+- Quick examples for starter prompts, placeholder text, and greeting message
 
 ## Getting Started
 
@@ -52,7 +52,7 @@ npm start
 ## Customization Tips
 
 - Adjust starter prompts, greeting text, and placeholder copy in [`lib/config.ts`](lib/config.ts).
-- Update the theme defaults or event handlers inside[`components/ChatKitPanel.tsx`](components/ChatKitPanel.tsx) to integrate with your product analytics or storage.
+- Update the theme defaults or event handlers inside [`components/.tsx`](components/ChatKitPanel.tsx) to integrate with your product analytics or storage.
 
 ## References
 
