@@ -18,6 +18,9 @@ This is a Next.js starter application that integrates **OpenAI ChatKit** to enab
 ### Key Dependencies
 - **@openai/chatkit-react** - Official ChatKit web component and React hooks
 - **Tailwind CSS 4** - Utility-first styling with PostCSS integration
+- **Drizzle ORM 0.44.6** - Type-safe SQL ORM with schema inference
+- **pg 8.16.3** - PostgreSQL client with connection pooling
+- **drizzle-kit 0.31.5** - Schema migration and introspection toolkit
 
 ### Development Tools
 - **ESLint 9** - Code quality and standards enforcement
@@ -32,18 +35,29 @@ This is a Next.js starter application that integrates **OpenAI ChatKit** to enab
 ```
 openai-chatkit-starter-app/
 ├── app/                    # Next.js App Router pages and API routes
+│   ├── admin/             # Agent management dashboard (no auth)
+│   │   └── page.tsx
+│   ├── embed/             # Public embeddable agent routes
+│   │   └── [slug]/page.tsx
 │   ├── App.tsx            # Main application component
 │   ├── page.tsx           # Root page entry
 │   ├── layout.tsx         # Root layout wrapper
 │   └── api/
+│       ├── agents/        # Agent CRUD endpoints
+│       │   ├── route.ts          # GET (list), POST (create)
+│       │   └── [id]/route.ts     # PATCH (update), DELETE
 │       └── create-session/
 │           └── route.ts   # Edge API endpoint for ChatKit session creation
 ├── components/            # Reusable React components
+│   ├── AgentModal.tsx     # Agent create/edit modal
 │   ├── ChatKitPanel.tsx   # ChatKit integration container
 │   └── ErrorOverlay.tsx   # Error and loading state UI
 ├── hooks/                 # Custom React hooks
 │   └── useColorScheme.ts  # Theme persistence and system preference detection
 ├── lib/                   # Shared utilities and configuration
+│   ├── db/                # Database layer
+│   │   ├── index.ts      # Connection pool and Drizzle instance
+│   │   └── schema.ts     # Database schema definitions
 │   └── config.ts          # App-wide constants and ChatKit settings
 └── public/                # Static assets
 ```
@@ -54,6 +68,34 @@ openai-chatkit-starter-app/
 2. **Web Components**: Uses OpenAI's `<openai-chatkit>` custom element for UI rendering
 3. **React Hooks Pattern**: Leverages `useChatKit` for workflow integration and state management
 4. **Edge Runtime**: API routes run on Edge for low-latency session creation worldwide
+5. **Database Layer Pattern**: Singleton connection pool with schema-first type inference via Drizzle ORM
+6. **Multi-Agent Pattern**: Database-driven workflow routing enables multiple embeddable agents from single codebase
+
+---
+
+## Database Layer
+
+### Connection Pattern
+Uses singleton pattern to prevent connection pool exhaustion during Next.js hot reloads in development. Global variable caching ensures single pool instance across module reloads.
+
+### Schema-First Design
+Database schema defined in TypeScript (`lib/db/schema.ts`) serves as single source of truth. Drizzle ORM infers types automatically—no manual type definitions needed. Schema changes managed via `drizzle-kit push` for rapid prototyping or migrations for production.
+
+### Agents Table Structure
+Stores agent configurations with UUID primary keys, unique slugs for URL routing, and workflow IDs for ChatKit integration. Timestamps track creation and modification.
+
+---
+
+## Multi-Agent System
+
+### Dynamic Workflow Routing
+Agents stored in PostgreSQL enable multiple ChatKit workflows from a single application. Each agent maps a human-readable slug to an OpenAI workflow ID. Server-side routing (`/embed/[slug]`) fetches agent configuration and passes `workflowId` prop to ChatKitPanel.
+
+### Embed Pattern
+Public embed routes are server components that query the database, handle 404s for invalid slugs, and render the same ChatKitPanel used in the main app—but with a different workflow. No client-side routing or state management needed for embeds.
+
+### Admin Interface
+Management UI (`/admin`) provides CRUD operations and generates iframe snippets for each agent. No authentication in MVP—add via middleware or route protection as needed for production.
 
 ---
 
@@ -64,6 +106,7 @@ openai-chatkit-starter-app/
 
 **Responsibilities**:
 - Initializes ChatKit web component with session credentials
+- Accepts optional `workflowId` prop (falls back to environment variable)
 - Manages error states (script loading, session creation, integration errors)
 - Handles client-side tool invocations (`switch_theme`, `record_fact`)
 - Provides theming configuration and starter prompts
@@ -157,7 +200,8 @@ openai-chatkit-starter-app/
 
 **Required**:
 - `OPENAI_API_KEY` - API key from the same org/project as your Agent Builder workflow
-- `NEXT_PUBLIC_CHATKIT_WORKFLOW_ID` - Workflow ID created in Agent Builder
+- `NEXT_PUBLIC_CHATKIT_WORKFLOW_ID` - Workflow ID created in Agent Builder (fallback for non-embed usage)
+- `DATABASE_URL` - PostgreSQL connection string (format: `postgresql://user:pass@host:port/dbname`)
 
 **Optional**:
 - `CHATKIT_API_BASE` - Custom base URL for ChatKit API (defaults to `https://api.openai.com`)
@@ -420,22 +464,10 @@ const upstreamResponse = await fetch(url, {
 });
 ```
 
-### 2. Workflow Selection
-**Pattern**: Allow users to switch between multiple workflows
+### 2. Multi-Agent Workflow Pattern
+**Pattern**: Database-driven workflow selection
 
-**Implementation**:
-```typescript
-// Store workflow ID in state
-const [workflowId, setWorkflowId] = useState(WORKFLOW_ID);
-
-// Pass to ChatKitPanel as prop
-<ChatKitPanel workflowId={workflowId} />
-
-// In ChatKitPanel, use it in getClientSecret:
-body: JSON.stringify({
-  workflow: { id: workflowId },
-})
-```
+Agents table stores multiple workflow configurations. Admin UI manages agents; embed routes dynamically load workflows by slug. ChatKitPanel accepts optional `workflowId` prop that takes precedence over environment variable. This pattern enables a single codebase to serve unlimited ChatKit workflows without redeployment.
 
 ### 3. Custom Message Handlers
 **Pattern**: React to specific message types from workflow
