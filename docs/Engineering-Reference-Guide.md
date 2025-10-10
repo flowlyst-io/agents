@@ -79,7 +79,10 @@ openai-chatkit-starter-app/
 Uses singleton pattern to prevent connection pool exhaustion during Next.js hot reloads in development. Global variable caching ensures single pool instance across module reloads.
 
 ### Schema-First Design
-Database schema defined in TypeScript (`lib/db/schema.ts`) serves as single source of truth. Drizzle ORM infers types automatically—no manual type definitions needed. Schema changes managed via `drizzle-kit push` for rapid prototyping or migrations for production.
+Database schema defined in TypeScript (`lib/db/schema.ts`) serves as single source of truth. Drizzle ORM infers types automatically—no manual type definitions needed.
+
+### Migration Workflow
+Schema changes use migration files for production deployments. Run `npm run db:generate` to create migrations from schema changes, `npm run db:migrate` to apply locally. Vercel deployments automatically run migrations via `vercel-build` script before building the application.
 
 ### Agents Table Structure
 Stores agent configurations with UUID primary keys, unique slugs for URL routing, and workflow IDs for ChatKit integration. Timestamps track creation and modification.
