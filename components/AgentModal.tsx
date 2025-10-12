@@ -8,7 +8,6 @@ interface AgentModalProps {
   agent: Agent | null; // null = create mode, object = edit mode
   onSave: (data: {
     name: string;
-    slug: string;
     workflowId: string;
   }) => Promise<void>;
   onClose: () => void;
@@ -16,7 +15,6 @@ interface AgentModalProps {
 
 export function AgentModal({ isOpen, agent, onSave, onClose }: AgentModalProps) {
   const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
   const [workflowId, setWorkflowId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,11 +23,9 @@ export function AgentModal({ isOpen, agent, onSave, onClose }: AgentModalProps) 
   useEffect(() => {
     if (agent) {
       setName(agent.name);
-      setSlug(agent.slug);
       setWorkflowId(agent.workflowId);
     } else {
       setName("");
-      setSlug("");
       setWorkflowId("");
     }
     setError(null);
@@ -41,27 +37,12 @@ export function AgentModal({ isOpen, agent, onSave, onClose }: AgentModalProps) 
     setIsSubmitting(true);
 
     try {
-      await onSave({ name, slug, workflowId });
+      await onSave({ name, workflowId });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save agent");
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  // Auto-generate slug from name
-  const handleNameChange = (value: string) => {
-    setName(value);
-    // Only auto-generate slug in create mode
-    if (!agent) {
-      const autoSlug = value
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .trim();
-      setSlug(autoSlug);
     }
   };
 
@@ -87,34 +68,11 @@ export function AgentModal({ isOpen, agent, onSave, onClose }: AgentModalProps) 
               type="text"
               id="name"
               value={name}
-              onChange={(e) => handleNameChange(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
               required
               className="w-full rounded border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
               placeholder="Support Agent"
             />
-          </div>
-
-          {/* Slug Field */}
-          <div className="mb-4">
-            <label
-              htmlFor="slug"
-              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
-            >
-              Slug
-            </label>
-            <input
-              type="text"
-              id="slug"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value.toLowerCase())}
-              required
-              pattern="[a-z0-9-]+"
-              className="w-full rounded border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-              placeholder="support"
-            />
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Lowercase letters, numbers, and hyphens only
-            </p>
           </div>
 
           {/* Workflow ID Field */}
