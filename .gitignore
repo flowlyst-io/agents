@@ -45,3 +45,6 @@ next-env.d.ts
 .codery/
 .claude/
 CLAUDE.md
+
+# Codery configuration
+.codery/config.json
