@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2025-10-13
+
 ### Added
 - Multi-agent system with database-driven workflow routing enabling multiple ChatKit agents from single codebase
 - Agent management admin interface at `/admin` with CRUD operations for agents
