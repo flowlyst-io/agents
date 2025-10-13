@@ -44,7 +44,6 @@ export default function AdminPage() {
 
   const handleSave = async (data: {
     name: string;
-    slug: string;
     workflowId: string;
   }) => {
     if (editingAgent) {
