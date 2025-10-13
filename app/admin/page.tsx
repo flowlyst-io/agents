@@ -9,7 +9,8 @@ export default function AdminPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
-  const [embedSnippet, setEmbedSnippet] = useState<string | null>(null);
+  const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
+  const [copiedAgentId, setCopiedAgentId] = useState<string | null>(null);
 
   // Fetch agents on mount
   useEffect(() => {
@@ -32,14 +33,18 @@ export default function AdminPage() {
 
   const handleCreate = () => {
     setEditingAgent(null);
-    setEmbedSnippet(null);
+    setExpandedAgentId(null);
     setIsModalOpen(true);
   };
 
   const handleEdit = (agent: Agent) => {
     setEditingAgent(agent);
-    setEmbedSnippet(null);
+    setExpandedAgentId(null);
     setIsModalOpen(true);
+  };
+
+  const toggleExpanded = (agentId: string) => {
+    setExpandedAgentId((prev) => (prev === agentId ? null : agentId));
   };
 
   const handleSave = async (data: {
@@ -63,7 +68,6 @@ export default function AdminPage() {
       setAgents((prev) =>
         prev.map((a) => (a.id === updatedAgent.id ? updatedAgent : a))
       );
-      showEmbedSnippet(updatedAgent.slug);
     } else {
       // Create new agent
       const response = await fetch("/api/agents", {
@@ -79,7 +83,6 @@ export default function AdminPage() {
 
       const newAgent = await response.json();
       setAgents((prev) => [newAgent, ...prev]);
-      showEmbedSnippet(newAgent.slug);
     }
   };
 
@@ -102,22 +105,24 @@ export default function AdminPage() {
     }
   };
 
-  const showEmbedSnippet = (slug: string) => {
+  const getEmbedSnippet = (slug: string) => {
     const origin =
       typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
-    const snippet = `<iframe
+    return `<iframe
   src="${origin}/embed/${slug}"
   width="100%"
   height="700"
   style="border:none; border-radius:12px; overflow:hidden">
 </iframe>`;
-    setEmbedSnippet(snippet);
   };
 
-  const copyToClipboard = async (text: string) => {
+  const copyToClipboard = async (text: string, agentId: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      alert("Copied to clipboard!");
+      setCopiedAgentId(agentId);
+      setTimeout(() => {
+        setCopiedAgentId(null);
+      }, 2000);
     } catch (error) {
       console.error("Failed to copy:", error);
       alert("Failed to copy to clipboard");
@@ -148,26 +153,6 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* Embed Snippet Display */}
-        {embedSnippet && (
-          <div className="mb-6 rounded-lg bg-white p-4 shadow dark:bg-slate-800">
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-900 dark:text-white">
-                Embed Code
-              </h3>
-              <button
-                onClick={() => copyToClipboard(embedSnippet)}
-                className="rounded bg-slate-200 px-3 py-1 text-sm text-slate-700 hover:bg-slate-300 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500"
-              >
-                Copy
-              </button>
-            </div>
-            <pre className="overflow-x-auto rounded bg-slate-100 p-3 text-xs text-slate-800 dark:bg-slate-900 dark:text-slate-200">
-              {embedSnippet}
-            </pre>
-          </div>
-        )}
-
         {/* Agents List */}
         {agents.length === 0 ? (
           <div className="rounded-lg bg-white p-12 text-center shadow dark:bg-slate-800">
@@ -184,9 +169,6 @@ export default function AdminPage() {
                     Name
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 dark:text-white">
-                    Slug
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 dark:text-white">
                     Workflow ID
                   </th>
                   <th className="px-6 py-3 text-right text-sm font-semibold text-slate-900 dark:text-white">
@@ -196,37 +178,100 @@ export default function AdminPage() {
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-600">
                 {agents.map((agent) => (
-                  <tr key={agent.id} className="hover:bg-slate-50 dark:hover:bg-slate-700">
-                    <td className="px-6 py-4 text-sm text-slate-900 dark:text-white">
-                      {agent.name}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                      {agent.slug}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-mono text-slate-600 dark:text-slate-300">
-                      {agent.workflowId}
-                    </td>
-                    <td className="px-6 py-4 text-right text-sm">
-                      <button
-                        onClick={() => showEmbedSnippet(agent.slug)}
-                        className="mr-2 text-blue-600 hover:underline dark:text-blue-400"
-                      >
-                        Copy Embed
-                      </button>
-                      <button
-                        onClick={() => handleEdit(agent)}
-                        className="mr-2 text-slate-600 hover:underline dark:text-slate-400"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(agent.id)}
-                        className="text-red-600 hover:underline dark:text-red-400"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
+                  <>
+                    <tr key={agent.id} className="hover:bg-slate-50 dark:hover:bg-slate-700">
+                      <td className="px-6 py-4 text-sm text-slate-900 dark:text-white">
+                        {agent.name}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-mono text-slate-600 dark:text-slate-300">
+                        {agent.workflowId}
+                      </td>
+                      <td className="px-6 py-4 text-right text-sm">
+                        <a
+                          href={`/embed/${agent.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mr-2 text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          Go to Agent
+                        </a>
+                        <button
+                          onClick={() => toggleExpanded(agent.id)}
+                          className="mr-2 text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          {expandedAgentId === agent.id ? "Hide Embed" : "Show Embed"}
+                        </button>
+                        <button
+                          onClick={() => handleEdit(agent)}
+                          className="mr-2 text-slate-600 hover:underline dark:text-slate-400"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(agent.id)}
+                          className="text-red-600 hover:underline dark:text-red-400"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                    {expandedAgentId === agent.id && (
+                      <tr key={`${agent.id}-expanded`}>
+                        <td colSpan={3} className="bg-slate-50 px-6 py-4 dark:bg-slate-700">
+                          <div className="relative">
+                            <pre className="overflow-x-auto rounded bg-slate-100 p-3 pr-12 text-xs text-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                              {getEmbedSnippet(agent.slug)}
+                            </pre>
+                            <div className="group absolute right-2 top-2">
+                              <button
+                                onClick={() => copyToClipboard(getEmbedSnippet(agent.slug), agent.id)}
+                                className="rounded p-2 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                                aria-label={copiedAgentId === agent.id ? "Copied!" : "Copy to clipboard"}
+                              >
+                                {copiedAgentId === agent.id ? (
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="text-green-600 dark:text-green-400"
+                                  >
+                                    <path d="M20 6 9 17l-5-5" />
+                                  </svg>
+                                ) : (
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                                    <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+                                    <path d="M16 4h2a2 2 0 0 1 2 2v4" />
+                                    <path d="M21 14H11" />
+                                    <path d="m15 10-4 4 4 4" />
+                                  </svg>
+                                )}
+                              </button>
+                              <div className="pointer-events-none absolute bottom-full right-0 mb-2 hidden whitespace-nowrap rounded bg-slate-900 px-2 py-1 text-xs text-white group-hover:block dark:bg-slate-100 dark:text-slate-900">
+                                {copiedAgentId === agent.id ? "Copied!" : "Copy to clipboard"}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 ))}
               </tbody>
             </table>
