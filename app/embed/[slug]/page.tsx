@@ -23,6 +23,6 @@ export default async function EmbedPage({
     notFound();
   }
 
-  // Render App component with the agent's workflowId
-  return <App workflowId={agent[0].workflowId} />;
+  // Render App component with the agent's workflowId in embed variant
+  return <App workflowId={agent[0].workflowId} variant="embed" />;
 }

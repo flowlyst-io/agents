@@ -21,6 +21,7 @@ export type FactAction = {
 type ChatKitPanelProps = {
   theme: ColorScheme;
   workflowId?: string;
+  variant?: "default" | "embed";
   onWidgetAction: (action: FactAction) => Promise<void>;
   onResponseEnd: () => void;
   onThemeRequest: (scheme: ColorScheme) => void;
@@ -46,6 +47,7 @@ const createInitialErrors = (): ErrorState => ({
 export function ChatKitPanel({
   theme,
   workflowId,
+  variant = "default",
   onWidgetAction,
   onResponseEnd,
   onThemeRequest,
@@ -346,8 +348,16 @@ export function ChatKitPanel({
     });
   }
 
+  const isEmbed = variant === "embed";
+
   return (
-    <div className="relative flex h-[90vh] w-full flex-col overflow-hidden bg-white shadow-sm transition-colors dark:bg-slate-900">
+    <div
+      className={
+        isEmbed
+          ? "relative flex h-full w-full flex-col overflow-hidden"
+          : "relative flex h-[90vh] w-full flex-col overflow-hidden bg-white shadow-sm transition-colors dark:bg-slate-900"
+      }
+    >
       <ChatKit
         key={widgetInstanceKey}
         control={chatkit.control}
