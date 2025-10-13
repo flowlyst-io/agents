@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { agents } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
+import { randomBytes } from "crypto";
+
+// Generate a random 16-character hex string for slug
+function generateSlug(): string {
+  return randomBytes(8).toString("hex");
+}
 
 // GET /api/agents - List all agents
 export async function GET() {
@@ -25,44 +31,18 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, slug, workflowId } = body;
+    const { name, workflowId } = body;
 
     // Validation
-    if (!name || !slug || !workflowId) {
+    if (!name || !workflowId) {
       return NextResponse.json(
-        { error: "Missing required fields: name, slug, workflowId" },
+        { error: "Missing required fields: name, workflowId" },
         { status: 400 }
       );
     }
 
-    // Validate slug format (lowercase, alphanumeric, hyphens only)
-    const slugPattern = /^[a-z0-9-]+$/;
-    if (!slugPattern.test(slug)) {
-      return NextResponse.json(
-        {
-          error:
-            "Invalid slug format. Use only lowercase letters, numbers, and hyphens.",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Check for reserved slugs
-    const reservedSlugs = ["api", "admin", "embed", "_next"];
-    if (reservedSlugs.includes(slug)) {
-      return NextResponse.json(
-        { error: `Slug '${slug}' is reserved and cannot be used.` },
-        { status: 400 }
-      );
-    }
-
-    // Validate slug length
-    if (slug.length > 50) {
-      return NextResponse.json(
-        { error: "Slug must be 50 characters or less" },
-        { status: 400 }
-      );
-    }
+    // Generate random slug
+    const slug = generateSlug();
 
     // Create agent
     const newAgent = await db
