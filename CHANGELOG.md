@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Embed pages now render in full-screen layout for seamless iframe integration (FA-3)
+- ChatKitPanel component is now self-contained with internal theme management (FA-3)
+- Simplified embed route architecture by removing intermediate wrapper components (FA-3)
+
+### Removed
+- Removed App.tsx wrapper component following YAGNI principle (FA-3)
+- Removed MVP_PRD.md documentation file (FA-3)
+
 ## [0.1.0] - 2025-10-13
 
 ### Added
