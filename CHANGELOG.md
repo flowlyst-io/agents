@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2025-10-14
+
+### Changed
+- Improved embed page layout to use full viewport height for better iframe integration (FA-3)
+- Refactored ChatKitPanel to manage theme state internally, simplifying component usage (FA-3)
+
+### Removed
+- Removed MVP_PRD.md documentation file (FA-3)
+
 ## [0.1.0] - 2025-10-13
 
 ### Added
