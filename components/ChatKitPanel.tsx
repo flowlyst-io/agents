@@ -10,7 +10,7 @@ import {
   WORKFLOW_ID,
 } from "@/lib/config";
 import { ErrorOverlay } from "./ErrorOverlay";
-import type { ColorScheme } from "@/hooks/useColorScheme";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
 export type FactAction = {
   type: "save";
@@ -19,12 +19,9 @@ export type FactAction = {
 };
 
 type ChatKitPanelProps = {
-  theme: ColorScheme;
   workflowId?: string;
-  variant?: "default" | "embed";
-  onWidgetAction: (action: FactAction) => Promise<void>;
-  onResponseEnd: () => void;
-  onThemeRequest: (scheme: ColorScheme) => void;
+  onWidgetAction?: (action: FactAction) => Promise<void>;
+  onResponseEnd?: () => void;
 };
 
 type ErrorState = {
@@ -35,7 +32,6 @@ type ErrorState = {
 };
 
 const isBrowser = typeof window !== "undefined";
-const isDev = process.env.NODE_ENV !== "production";
 
 const createInitialErrors = (): ErrorState => ({
   script: null,
@@ -45,13 +41,11 @@ const createInitialErrors = (): ErrorState => ({
 });
 
 export function ChatKitPanel({
-  theme,
   workflowId,
-  variant = "default",
   onWidgetAction,
   onResponseEnd,
-  onThemeRequest,
 }: ChatKitPanelProps) {
+  const { scheme, setScheme } = useColorScheme();
   const processedFacts = useRef(new Set<string>());
   const [errors, setErrors] = useState<ErrorState>(() => createInitialErrors());
   const [isInitializingSession, setIsInitializingSession] = useState(true);
@@ -163,14 +157,6 @@ export function ChatKitPanel({
 
   const getClientSecret = useCallback(
     async (currentSecret: string | null) => {
-      if (isDev) {
-        console.info("[ChatKitPanel] getClientSecret invoked", {
-          currentSecretPresent: Boolean(currentSecret),
-          workflowId: resolvedWorkflowId,
-          endpoint: CREATE_SESSION_ENDPOINT,
-        });
-      }
-
       if (!isWorkflowConfigured) {
         const detail =
           "No workflow ID configured. Either pass workflowId prop or set NEXT_PUBLIC_CHATKIT_WORKFLOW_ID in your .env.local file.";
@@ -200,14 +186,6 @@ export function ChatKitPanel({
         });
 
         const raw = await response.text();
-
-        if (isDev) {
-          console.info("[ChatKitPanel] createSession response", {
-            status: response.status,
-            ok: response.ok,
-            bodyPreview: raw.slice(0, 1600),
-          });
-        }
 
         let data: Record<string, unknown> = {};
         if (raw) {
@@ -262,15 +240,15 @@ export function ChatKitPanel({
   const chatkit = useChatKit({
     api: { getClientSecret },
     theme: {
-      colorScheme: theme,
+      colorScheme: scheme,
       color: {
         grayscale: {
           hue: 220,
           tint: 6,
-          shade: theme === "dark" ? -1 : -4,
+          shade: scheme === "dark" ? -1 : -4,
         },
         accent: {
-          primary: theme === "dark" ? "#f1f5f9" : "#0f172a",
+          primary: scheme === "dark" ? "#f1f5f9" : "#0f172a",
           level: 1,
         },
       },
@@ -293,10 +271,7 @@ export function ChatKitPanel({
       if (invocation.name === "switch_theme") {
         const requested = invocation.params.theme;
         if (requested === "light" || requested === "dark") {
-          if (isDev) {
-            console.debug("[ChatKitPanel] switch_theme", requested);
-          }
-          onThemeRequest(requested);
+          setScheme(requested);
           return { success: true };
         }
         return { success: false };
@@ -309,18 +284,20 @@ export function ChatKitPanel({
           return { success: true };
         }
         processedFacts.current.add(id);
-        void onWidgetAction({
-          type: "save",
-          factId: id,
-          factText: text.replace(/\s+/g, " ").trim(),
-        });
+        if (onWidgetAction) {
+          void onWidgetAction({
+            type: "save",
+            factId: id,
+            factText: text.replace(/\s+/g, " ").trim(),
+          });
+        }
         return { success: true };
       }
 
       return { success: false };
     },
     onResponseEnd: () => {
-      onResponseEnd();
+      onResponseEnd?.();
     },
     onResponseStart: () => {
       setErrorState({ integration: null, retryable: false });
@@ -338,46 +315,32 @@ export function ChatKitPanel({
   const activeError = errors.session ?? errors.integration;
   const blockingError = errors.script ?? activeError;
 
-  if (isDev) {
-    console.debug("[ChatKitPanel] render state", {
-      isInitializingSession,
-      hasControl: Boolean(chatkit.control),
-      scriptStatus,
-      hasError: Boolean(blockingError),
-      workflowId: resolvedWorkflowId,
-    });
-  }
-
-  const isEmbed = variant === "embed";
-
   return (
-    <div
-      className={
-        isEmbed
-          ? "relative flex h-full w-full flex-col overflow-hidden"
-          : "relative flex h-[90vh] w-full flex-col overflow-hidden bg-white shadow-sm transition-colors dark:bg-slate-900"
-      }
-    >
-      <ChatKit
-        key={widgetInstanceKey}
-        control={chatkit.control}
-        className={
-          blockingError || isInitializingSession
-            ? "pointer-events-none opacity-0"
-            : "block h-full w-full"
-        }
-      />
-      <ErrorOverlay
-        error={blockingError}
-        fallbackMessage={
-          blockingError || !isInitializingSession
-            ? null
-            : "Loading assistant session..."
-        }
-        onRetry={blockingError && errors.retryable ? handleResetChat : null}
-        retryLabel="Restart chat"
-      />
-    </div>
+    <main className="flex h-screen w-full flex-col overflow-hidden">
+      <div className="flex h-full w-full flex-col">
+        <div className="relative flex h-full w-full flex-col overflow-hidden">
+          <ChatKit
+            key={widgetInstanceKey}
+            control={chatkit.control}
+            className={
+              blockingError || isInitializingSession
+                ? "pointer-events-none opacity-0"
+                : "block h-full w-full"
+            }
+          />
+          <ErrorOverlay
+            error={blockingError}
+            fallbackMessage={
+              blockingError || !isInitializingSession
+                ? null
+                : "Loading assistant session..."
+            }
+            onRetry={blockingError && errors.retryable ? handleResetChat : null}
+            retryLabel="Restart chat"
+          />
+        </div>
+      </div>
+    </main>
   );
 }
 

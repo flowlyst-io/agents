@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { agents } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import App from "@/app/App";
+import { ChatKitPanel } from "@/components/ChatKitPanel";
 
 export default async function EmbedPage({
   params,
@@ -23,6 +23,5 @@ export default async function EmbedPage({
     notFound();
   }
 
-  // Render App component with the agent's workflowId in embed variant
-  return <App workflowId={agent[0].workflowId} variant="embed" />;
+  return <ChatKitPanel workflowId={agent[0].workflowId} />;
 }
