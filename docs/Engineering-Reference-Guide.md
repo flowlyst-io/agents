@@ -39,7 +39,6 @@ openai-chatkit-starter-app/
 │   │   └── page.tsx
 │   ├── embed/             # Public embeddable agent routes
 │   │   └── [slug]/page.tsx
-│   ├── App.tsx            # Main application component
 │   ├── page.tsx           # Root page entry
 │   ├── layout.tsx         # Root layout wrapper
 │   └── api/
@@ -104,10 +103,38 @@ Management UI (`/admin`) provides CRUD operations and generates iframe snippets 
 
 ## Core Components
 
-### 1. ChatKitPanel Component
+### 1. Embed Route Pattern
+**Location**: `app/embed/[slug]/page.tsx`
+
+**Pattern**: Direct Server Component → Client Component rendering
+
+**Responsibilities**:
+- Queries database for agent configuration by slug
+- Returns 404 for invalid/non-existent slugs
+- Directly renders `ChatKitPanel` with `workflowId` prop
+- No intermediate wrapper components
+
+**Architecture Benefits**:
+- Minimal abstraction - follows Next.js App Router conventions
+- Self-contained components with clear responsibilities
+- Database query happens in Server Component (efficient)
+- Full-screen layout achieved through component-level styling
+
+**Example Flow**:
+```typescript
+// Server Component fetches data
+const agents = await db.select().from(agentsTable).where(eq(agentsTable.slug, slug)).limit(1);
+if (agents.length === 0) return notFound();
+
+// Directly render Client Component with data
+return <ChatKitPanel workflowId={agents[0].workflowId} />;
+```
+
+### 2. ChatKitPanel Component
 **Location**: `components/ChatKitPanel.tsx`
 
 **Responsibilities**:
+- Self-contained ChatKit integration (manages own theme state)
 - Initializes ChatKit web component with session credentials
 - Accepts optional `workflowId` prop (falls back to environment variable)
 - Manages error states (script loading, session creation, integration errors)
@@ -116,27 +143,31 @@ Management UI (`/admin`) provides CRUD operations and generates iframe snippets 
 - Implements retry logic and widget instance management
 
 **Key Features**:
+- **Full-Screen Layout**: Uses `h-screen w-full` flex layout for iframe embedding
+- **Theme Management**: Internally uses `useColorScheme` hook (no prop drilling)
+- **Optional Callbacks**: `onWidgetAction` and `onResponseEnd` props are optional
 - **Session Management**: Calls `/api/create-session` to obtain client secrets
 - **Error Recovery**: Tracks retryable vs. non-retryable errors with user-friendly overlays
 - **Event Handling**:
   - `onClientTool`: Processes client-side tool calls from the AI workflow
-  - `onResponseEnd`: Lifecycle hook for response completion
+  - `onResponseEnd`: Lifecycle hook for response completion (if provided)
   - `onResponseStart`: Clears integration errors on new responses
   - `onThreadChange`: Resets processed facts when conversation thread changes
   - `onError`: Global error handler for ChatKit events
 
 **Client Tools**:
 ```typescript
-- switch_theme: Toggles between light/dark mode
-- record_fact: Captures and deduplicates workflow facts
+- switch_theme: Toggles between light/dark mode (via internal useColorScheme)
+- record_fact: Captures and deduplicates workflow facts (calls optional onWidgetAction)
 ```
 
 **Important Patterns**:
 - Uses `useRef` to track component mount state and prevent memory leaks
 - Implements script loading timeout (5 seconds) for ChatKit web component
 - Maintains processed facts set to avoid duplicate handling
+- Full-screen wrapper: `<main className="flex h-screen w-full flex-col overflow-hidden">`
 
-### 2. Create Session API Route
+### 3. Create Session API Route
 **Location**: `app/api/create-session/route.ts`
 
 **Responsibilities**:
@@ -160,7 +191,7 @@ Management UI (`/admin`) provides CRUD operations and generates iframe snippets 
 
 **Edge Runtime**: Deployed globally for minimal latency
 
-### 3. Color Scheme Hook
+### 4. Color Scheme Hook
 **Location**: `hooks/useColorScheme.ts`
 
 **Responsibilities**:
@@ -185,7 +216,7 @@ Management UI (`/admin`) provides CRUD operations and generates iframe snippets 
 - Listens to system preference changes in real-time
 - Syncs across tabs via storage events
 
-### 4. ErrorOverlay Component
+### 5. ErrorOverlay Component
 **Location**: `components/ErrorOverlay.tsx`
 
 **Purpose**: Displays loading states and error messages with optional retry functionality
@@ -243,11 +274,13 @@ GREETING                 // Initial greeting message
 ### Session Initialization Flow
 
 ```
-User visits page
+User visits embed page (/embed/[slug])
     ↓
-App.tsx renders ChatKitPanel
+Server Component queries database for agent by slug
     ↓
-ChatKitPanel calls getClientSecret()
+Server Component renders ChatKitPanel with workflowId
+    ↓
+ChatKitPanel (Client Component) calls getClientSecret()
     ↓
 POST /api/create-session
     ↓
@@ -263,7 +296,7 @@ useChatKit initializes with client_secret
     ↓
 ChatKit web component loads workflow
     ↓
-User sees start screen with prompts
+User sees start screen with prompts in full-screen layout
 ```
 
 ### Client Tool Invocation Flow
@@ -391,16 +424,18 @@ export const STARTER_PROMPTS: StartScreenPrompt[] = [
 
 **Recommended Hook Points**:
 ```typescript
-// In App.tsx
-const handleWidgetAction = useCallback(async (action: FactAction) => {
-  // Track fact saves to your analytics
-  analytics.track('fact_saved', { factId: action.factId });
-}, []);
-
-const handleResponseEnd = useCallback(() => {
-  // Track conversation turns
-  analytics.track('ai_response_completed');
-}, []);
+// Pass optional callbacks to ChatKitPanel
+<ChatKitPanel
+  workflowId={workflowId}
+  onWidgetAction={async (action: FactAction) => {
+    // Track fact saves to your analytics
+    analytics.track('fact_saved', { factId: action.factId });
+  }}
+  onResponseEnd={() => {
+    // Track conversation turns
+    analytics.track('ai_response_completed');
+  }}
+/>
 ```
 
 ### Persisting Conversation State
@@ -522,7 +557,7 @@ onResponseEnd: () => {
 **Solutions**:
 1. Check browser localStorage is enabled
 2. Verify no browser extensions blocking storage
-3. Ensure `useColorScheme` hook is called at App level
+3. Ensure `useColorScheme` hook is integrated in ChatKitPanel
 4. Check for multiple instances of theme management
 
 ---
@@ -613,6 +648,6 @@ onResponseEnd: () => {
 
 ---
 
-**Version**: 1.0
-**Last Updated**: 2025-10-09
+**Version**: 1.1
+**Last Updated**: 2025-10-14 (FA-3: Removed App.tsx, documented direct embed pattern)
 **Maintainer**: Project Team
