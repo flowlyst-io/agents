@@ -46,7 +46,7 @@ export default async function DashboardPage({
   if (clientAgents.length === 0) {
     return (
       <div className="flex h-screen w-full flex-col bg-slate-50 dark:bg-slate-950">
-        <DashboardHeader title="Agent Dashboard" />
+        <DashboardHeader title="Agents" />
         <div className="flex flex-1 items-center justify-center p-6">
           <div className="text-center">
             <div className="mb-4 text-6xl">🤖</div>
@@ -64,7 +64,7 @@ export default async function DashboardPage({
 
   return (
     <div className="flex h-screen w-full flex-col bg-slate-50 dark:bg-slate-950">
-      <DashboardHeader title="Agent Dashboard" />
+      <DashboardHeader title="Agents" />
       <main className="flex-1 overflow-y-auto p-6">
         <div className="mx-auto max-w-4xl">
           <div className="mb-6">
