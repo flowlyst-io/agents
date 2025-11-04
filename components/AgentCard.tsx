@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 type AgentCardProps = {
   name: string;
   slug: string;
@@ -11,7 +9,7 @@ type AgentCardProps = {
 
 export function AgentCard({ name, slug, clientSlug, icon = "🤖" }: AgentCardProps) {
   return (
-    <Link
+    <a
       href={`/embed/dashboard/${clientSlug}/${slug}`}
       className="group block rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-slate-300 hover:shadow-md dark:border-slate-700 dark:bg-slate-800 dark:hover:border-slate-600"
     >
@@ -26,6 +24,6 @@ export function AgentCard({ name, slug, clientSlug, icon = "🤖" }: AgentCardPr
           Click to chat
         </div>
       </div>
-    </Link>
+    </a>
   );
 }

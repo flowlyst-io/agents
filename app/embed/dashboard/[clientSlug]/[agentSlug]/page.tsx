@@ -39,14 +39,16 @@ export default async function AgentChatPage({
   }
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden">
-      <DashboardHeader
-        title={agent[0].name}
-        backLink={`/embed/dashboard/${clientSlug}`}
-      />
-      <div className="flex-1 overflow-hidden">
-        <ChatKitPanel key={agent[0].workflowId} workflowId={agent[0].workflowId} />
+    <>
+      <div className="flex h-screen w-full flex-col overflow-hidden">
+        <DashboardHeader
+          title={agent[0].name}
+          backLink={`/embed/dashboard/${clientSlug}`}
+        />
+        <div className="flex-1 overflow-hidden">
+          <ChatKitPanel key={agent[0].workflowId} workflowId={agent[0].workflowId} />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
