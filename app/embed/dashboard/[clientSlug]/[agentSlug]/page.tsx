@@ -45,7 +45,7 @@ export default async function AgentChatPage({
         backLink={`/embed/dashboard/${clientSlug}`}
       />
       <div className="flex-1 overflow-hidden">
-        <ChatKitPanel workflowId={agent[0].workflowId} />
+        <ChatKitPanel key={agent[0].workflowId} workflowId={agent[0].workflowId} />
       </div>
     </div>
   );
