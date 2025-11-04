@@ -260,6 +260,9 @@ export function ChatKitPanel({
     },
     composer: {
       placeholder: PLACEHOLDER_INPUT,
+      attachments: {
+        enabled: true,
+      },
     },
     threadItemActions: {
       feedback: false,
