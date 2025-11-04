@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Multi-agent dashboard for client-specific agent navigation at `/embed/dashboard/[clientSlug]` (FA-4)
+- AgentCard component for displaying agents with icons and click-to-chat functionality (FA-4)
+- DashboardHeader component with optional back navigation for agent views (FA-4)
+- Dynamic icon assignment based on agent name (support, sales, tech, HR icons) (FA-4)
+- Empty state handling for clients with no configured agents (FA-4)
+- Hard-coded workflow ID configuration system for POC client deployments (FA-4)
+
+### Known Issues
+- Multi-agent dashboard navigation uses full page reloads (workaround for FA-5)
+- Page flashing occurs when switching between agents due to forced page reload (FA-5)
+
 ## [0.1.1] - 2025-10-14
 
 ### Changed
