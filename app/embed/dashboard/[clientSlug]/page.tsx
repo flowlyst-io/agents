@@ -5,11 +5,19 @@ import { inArray } from "drizzle-orm";
 import { AgentCard } from "@/components/AgentCard";
 import { DashboardHeader } from "@/components/DashboardHeader";
 
-// Hard-coded workflow IDs for UTB client (POC)
+// Hard-coded workflow IDs per client (POC)
 const CLIENT_WORKFLOWS: Record<string, string[]> = {
   utb: [
     "wf_690a4234fa908190873eea1a64035039035ee8e865a3cd4b",
     "wf_690253c4ecac819089f591d7604d3f3e02bbca51471a4822",
+  ],
+  bellwood: [
+    "wf_690be00381d08190b31b24589592dd09046d49bb9156563c",
+    "wf_690bdf2ead0881909f1d81fa8cc80c810f1ee4cdaa4a0413",
+    "wf_690bde7970348190a9527dbd8357408e0b69a5ee352abc0a",
+    "wf_690bddb16f18819087bbcb2af482bb480a23e612197bb03a",
+    "wf_690bd4f8d24c8190b6a2dfd2b8b6058f0df37fc036b98a7c",
+    "wf_690bd8e7b75c81908e017cb0a3a567bf0ed3ee2a4181f370",
   ],
 };
 
