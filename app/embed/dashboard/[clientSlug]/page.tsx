@@ -22,8 +22,17 @@ const CLIENT_WORKFLOWS: Record<string, string[]> = {
 };
 
 // Icon mapping (can be customized per agent name)
-const getAgentIcon = (name: string): string => {
+const getAgentIcon = (name: string, clientSlug: string): string => {
   const nameLower = name.toLowerCase();
+
+  // Bellwood-specific icons
+  if (clientSlug === "bellwood") {
+    if (nameLower.includes("policy") || nameLower.includes("guideline")) return "📋";
+    if (nameLower.includes("contract")) return "📄";
+    if (nameLower.includes("strategic") || nameLower.includes("plan")) return "🎯";
+  }
+
+  // Default icons for all clients
   if (nameLower.includes("support") || nameLower.includes("help")) return "💬";
   if (nameLower.includes("sales") || nameLower.includes("sell")) return "💼";
   if (nameLower.includes("tech") || nameLower.includes("engineering")) return "🔧";
@@ -90,7 +99,7 @@ export default async function DashboardPage({
                 name={agent.name}
                 slug={agent.slug}
                 clientSlug={clientSlug}
-                icon={getAgentIcon(agent.name)}
+                icon={getAgentIcon(agent.name, clientSlug)}
               />
             ))}
           </div>
