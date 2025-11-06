@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2025-11-04
+
+### Added
+- Bellwood multi-agent dashboard with 6 agents at `/embed/dashboard/bellwood` (FA-6)
+
 ## [0.2.2] - 2025-11-04
 
 ### Fixed
