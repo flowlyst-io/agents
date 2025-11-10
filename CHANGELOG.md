@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2025-11-10
+
+### Added
+- Alshaya client "AI Agents" dashboard at `/embed/dashboard/alshaya` for 6 conduct/policy agents
+- Alshaya client "AI Integration of Xero" dashboard at `/embed/dashboard/alshaya-xero` for tax accounting agent
+- Alshaya-specific icon mappings (briefcase, clipboard, document, people, gears, chart, construction worker)
+
 ## [0.2.3] - 2025-11-04
 
 ### Added
