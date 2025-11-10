@@ -19,6 +19,12 @@ const CLIENT_WORKFLOWS: Record<string, string[]> = {
     "wf_690bd4f8d24c8190b6a2dfd2b8b6058f0df37fc036b98a7c",
     "wf_690bd8e7b75c81908e017cb0a3a567bf0ed3ee2a4181f370",
   ],
+  alshaya: [
+    "wf_690a4234fa908190873eea1a64035039035ee8e865a3cd4b", // Code of Conduct + 5 policy agents
+  ],
+  "alshaya-xero": [
+    "wf_690253c4ecac819089f591d7604d3f3e02bbca51471a4822", // Tax and Accounting Agent
+  ],
 };
 
 export default async function AgentChatPage({
