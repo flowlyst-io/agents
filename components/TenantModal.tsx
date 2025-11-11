@@ -2,6 +2,17 @@
 
 import { useState, useEffect } from "react";
 import type { Tenant } from "@/lib/db/schema";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface TenantModalProps {
   isOpen: boolean;
@@ -40,65 +51,48 @@ export function TenantModal({ isOpen, tenant, onSave, onClose }: TenantModalProp
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-slate-800">
-        <h2 className="mb-4 text-xl font-bold text-slate-900 dark:text-white">
-          {tenant ? "Edit Tenant" : "Create New Tenant"}
-        </h2>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{tenant ? "Edit Tenant" : "Create New Tenant"}</DialogTitle>
+          <DialogDescription>
+            {tenant ? "Update the tenant name below." : "Enter a unique name for the new tenant."}
+          </DialogDescription>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          {/* Name Field */}
-          <div className="mb-4">
-            <label
-              htmlFor="name"
-              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
-            >
-              Tenant Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full rounded border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-              placeholder="Acme Corp"
-            />
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Must be unique
-            </p>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 rounded bg-red-100 p-3 text-sm text-red-700 dark:bg-red-900 dark:text-red-200">
-              {error}
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Tenant Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Acme Corp"
+                required
+              />
+              <p className="text-xs text-muted-foreground">Must be unique</p>
             </div>
-          )}
 
-          {/* Buttons */}
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="rounded bg-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isSubmitting ? "Saving..." : "Save"}
-            </button>
+            {/* Error Message */}
+            {error && (
+              <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
           </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

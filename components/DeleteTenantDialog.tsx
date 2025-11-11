@@ -2,6 +2,25 @@
 
 import { useState } from "react";
 import type { Tenant } from "@/lib/db/schema";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DeleteTenantDialogProps {
   isOpen: boolean;
@@ -26,8 +45,7 @@ export function DeleteTenantDialog({
   // Filter out the tenant being deleted from reassignment options
   const otherTenants = tenants.filter((t) => t.id !== tenant.id);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleDelete = async () => {
     setError(null);
 
     // Validate reassign action
@@ -48,123 +66,88 @@ export function DeleteTenantDialog({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-slate-800">
-        <h2 className="mb-4 text-xl font-bold text-slate-900 dark:text-white">
-          Delete "{tenant.name}"?
-        </h2>
+    <AlertDialog open={isOpen} onOpenChange={onClose}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete "{tenant.name}"?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This tenant has <strong>{tenant.agentCount} agent{tenant.agentCount !== 1 ? "s" : ""}</strong> assigned.
+            What should happen to them?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
 
-        <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
-          This tenant has <strong>{tenant.agentCount} agent{tenant.agentCount !== 1 ? "s" : ""}</strong> assigned.
-          What should happen to them?
-        </p>
-
-        <form onSubmit={handleSubmit}>
-          {/* Radio Options */}
-          <div className="mb-4 space-y-3">
+        <div className="space-y-4">
+          <RadioGroup value={action} onValueChange={(value) => setAction(value as typeof action)}>
             {/* Option 1: Make General Purpose */}
-            <label className="flex cursor-pointer items-start gap-3 rounded border border-slate-200 p-3 hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-700">
-              <input
-                type="radio"
-                name="action"
-                value="make_general"
-                checked={action === "make_general"}
-                onChange={(e) => setAction(e.target.value as "make_general")}
-                className="mt-1"
-              />
-              <div className="flex-1">
-                <div className="font-medium text-slate-900 dark:text-white">
-                  Make them General Purpose
-                </div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">
+            <div className="flex items-start space-x-3 rounded-lg border p-4">
+              <RadioGroupItem value="make_general" id="make_general" />
+              <Label htmlFor="make_general" className="flex-1 cursor-pointer">
+                <div className="font-medium">Make them General Purpose</div>
+                <div className="text-sm text-muted-foreground">
                   Agents will remain in the system without a tenant
                 </div>
-              </div>
-            </label>
+              </Label>
+            </div>
 
             {/* Option 2: Reassign to Another Tenant */}
-            <label className="flex cursor-pointer items-start gap-3 rounded border border-slate-200 p-3 hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-700">
-              <input
-                type="radio"
-                name="action"
-                value="reassign"
-                checked={action === "reassign"}
-                onChange={(e) => setAction(e.target.value as "reassign")}
-                className="mt-1"
-              />
-              <div className="flex-1">
-                <div className="font-medium text-slate-900 dark:text-white">
-                  Reassign to another tenant
-                </div>
+            <div className="flex items-start space-x-3 rounded-lg border p-4">
+              <RadioGroupItem value="reassign" id="reassign" />
+              <Label htmlFor="reassign" className="flex-1 cursor-pointer">
+                <div className="font-medium">Reassign to another tenant</div>
                 {action === "reassign" && (
-                  <select
-                    value={targetTenantId}
-                    onChange={(e) => setTargetTenantId(e.target.value)}
-                    className="mt-2 w-full rounded border border-slate-300 px-3 py-1 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                    required
-                  >
-                    <option value="">Select tenant...</option>
-                    {otherTenants.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="mt-2">
+                    <Select value={targetTenantId} onValueChange={setTargetTenantId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select tenant..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {otherTenants.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>
+                            {t.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
-              </div>
-            </label>
+              </Label>
+            </div>
 
             {/* Option 3: Delete All Agents */}
-            <label className="flex cursor-pointer items-start gap-3 rounded border border-red-200 p-3 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/20">
-              <input
-                type="radio"
-                name="action"
-                value="delete_agents"
-                checked={action === "delete_agents"}
-                onChange={(e) => setAction(e.target.value as "delete_agents")}
-                className="mt-1"
-              />
-              <div className="flex-1">
-                <div className="font-medium text-red-700 dark:text-red-400">
-                  Delete all agents too
-                </div>
-                <div className="text-xs text-red-600 dark:text-red-500">
+            <div className="flex items-start space-x-3 rounded-lg border border-destructive/50 bg-destructive/5 p-4">
+              <RadioGroupItem value="delete_agents" id="delete_agents" />
+              <Label htmlFor="delete_agents" className="flex-1 cursor-pointer">
+                <div className="font-medium text-destructive">Delete all agents too</div>
+                <div className="text-sm text-destructive/80">
                   ⚠️ This will permanently delete {tenant.agentCount} agent{tenant.agentCount !== 1 ? "s" : ""}
                 </div>
-              </div>
-            </label>
-          </div>
+              </Label>
+            </div>
+          </RadioGroup>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-4 rounded bg-red-100 p-3 text-sm text-red-700 dark:bg-red-900 dark:text-red-200">
+            <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
               {error}
             </div>
           )}
+        </div>
 
-          {/* Buttons */}
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="rounded bg-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-600 dark:text-slate-200 dark:hover:bg-slate-500"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50"
-            >
-              {isSubmitting ? "Deleting..." : "Delete Tenant"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => {
+              e.preventDefault();
+              handleDelete();
+            }}
+            disabled={isSubmitting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isSubmitting ? "Deleting..." : "Delete Tenant"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

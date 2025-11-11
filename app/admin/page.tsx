@@ -4,6 +4,15 @@ import { useState, useEffect } from "react";
 import { AgentModal } from "@/components/AgentModal";
 import { TenantModal } from "@/components/TenantModal";
 import { DeleteTenantDialog } from "@/components/DeleteTenantDialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import type { Agent, Tenant } from "@/lib/db/schema";
 
 type TenantWithCount = Tenant & { agentCount: number };
@@ -290,67 +299,44 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-slate-100 p-6 dark:bg-slate-950">
       <div className="mx-auto max-w-6xl">
-        {/* Header with Tabs */}
-        <div className="mb-6">
-          <h1 className="mb-4 text-3xl font-bold text-slate-900 dark:text-white">
-            Admin Dashboard
-          </h1>
+        {/* Header */}
+        <h1 className="mb-6 text-3xl font-bold text-slate-900 dark:text-white">
+          Admin Dashboard
+        </h1>
 
-          {/* Tab Navigation */}
-          <div className="flex gap-2 border-b border-slate-200 dark:border-slate-700">
-            <button
-              onClick={() => setActiveTab("agents")}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === "agents"
-                  ? "border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
-                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-              }`}
-            >
-              Agents
-            </button>
-            <button
-              onClick={() => setActiveTab("tenants")}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === "tenants"
-                  ? "border-b-2 border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400"
-                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
-              }`}
-            >
-              Tenants
-            </button>
-          </div>
-        </div>
+        <Tabs defaultValue="agents" value={activeTab} onValueChange={(value) => setActiveTab(value as "agents" | "tenants")}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="agents">Agents</TabsTrigger>
+            <TabsTrigger value="tenants">Tenants</TabsTrigger>
+          </TabsList>
 
-        {/* Agents Tab */}
-        {activeTab === "agents" && (
-          <div>
+          {/* Agents Tab */}
+          <TabsContent value="agents">
+            <div>
             {/* Agents Tab Header */}
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <label htmlFor="tenant-filter" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   Filter by Tenant:
                 </label>
-                <select
-                  id="tenant-filter"
-                  value={tenantFilter}
-                  onChange={(e) => setTenantFilter(e.target.value)}
-                  className="rounded border border-slate-300 px-3 py-1 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
-                >
-                  <option value="all">All Tenants</option>
-                  <option value="general">General Purpose</option>
-                  {tenants.map((tenant) => (
-                    <option key={tenant.id} value={tenant.id}>
-                      {tenant.name}
-                    </option>
-                  ))}
-                </select>
+                <Select value={tenantFilter} onValueChange={setTenantFilter}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select tenant" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tenants</SelectItem>
+                    <SelectItem value="general">General Purpose</SelectItem>
+                    {tenants.map((tenant) => (
+                      <SelectItem key={tenant.id} value={tenant.id}>
+                        {tenant.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <button
-                onClick={handleCreateAgent}
-                className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-              >
+              <Button onClick={handleCreateAgent}>
                 + New Agent
-              </button>
+              </Button>
             </div>
 
             {/* Agents List */}
@@ -493,20 +479,17 @@ export default function AdminPage() {
                 </table>
               </div>
             )}
-          </div>
-        )}
+            </div>
+          </TabsContent>
 
-        {/* Tenants Tab */}
-        {activeTab === "tenants" && (
-          <div>
+          {/* Tenants Tab */}
+          <TabsContent value="tenants">
+            <div>
             {/* Tenants Tab Header */}
             <div className="mb-4 flex justify-end">
-              <button
-                onClick={handleCreateTenant}
-                className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-              >
+              <Button onClick={handleCreateTenant}>
                 + New Tenant
-              </button>
+              </Button>
             </div>
 
             {/* Tenants List */}
@@ -577,8 +560,9 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Modals */}
