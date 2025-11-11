@@ -1,21 +1,25 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Agent } from "@/lib/db/schema";
+import type { Agent, Tenant } from "@/lib/db/schema";
 
 interface AgentModalProps {
   isOpen: boolean;
   agent: Agent | null; // null = create mode, object = edit mode
+  tenants: Tenant[]; // List of existing tenants
   onSave: (data: {
     name: string;
     workflowId: string;
+    tenantId: string | null;
+    tenantName?: string; // For inline tenant creation
   }) => Promise<void>;
   onClose: () => void;
 }
 
-export function AgentModal({ isOpen, agent, onSave, onClose }: AgentModalProps) {
+export function AgentModal({ isOpen, agent, tenants, onSave, onClose }: AgentModalProps) {
   const [name, setName] = useState("");
   const [workflowId, setWorkflowId] = useState("");
+  const [tenantValue, setTenantValue] = useState(""); // Can be tenant ID or new tenant name
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,9 +28,11 @@ export function AgentModal({ isOpen, agent, onSave, onClose }: AgentModalProps) 
     if (agent) {
       setName(agent.name);
       setWorkflowId(agent.workflowId);
+      setTenantValue(agent.tenantId || "");
     } else {
       setName("");
       setWorkflowId("");
+      setTenantValue("");
     }
     setError(null);
   }, [agent, isOpen]);
@@ -37,7 +43,20 @@ export function AgentModal({ isOpen, agent, onSave, onClose }: AgentModalProps) 
     setIsSubmitting(true);
 
     try {
-      await onSave({ name, workflowId });
+      // Check if tenantValue is an existing tenant ID or a new tenant name
+      const existingTenant = tenants.find((t) => t.id === tenantValue);
+
+      if (existingTenant) {
+        // Existing tenant selected
+        await onSave({ name, workflowId, tenantId: existingTenant.id });
+      } else if (tenantValue.trim()) {
+        // New tenant name typed - pass for inline creation
+        await onSave({ name, workflowId, tenantId: null, tenantName: tenantValue.trim() });
+      } else {
+        // No tenant (General Purpose)
+        await onSave({ name, workflowId, tenantId: null });
+      }
+
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save agent");
@@ -94,6 +113,36 @@ export function AgentModal({ isOpen, agent, onSave, onClose }: AgentModalProps) 
             />
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               OpenAI Agent Builder workflow ID
+            </p>
+          </div>
+
+          {/* Tenant Field (Combobox) */}
+          <div className="mb-4">
+            <label
+              htmlFor="tenant"
+              className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
+              Tenant
+            </label>
+            <input
+              type="text"
+              id="tenant"
+              list="tenant-options"
+              value={tenantValue}
+              onChange={(e) => setTenantValue(e.target.value)}
+              className="w-full rounded border border-slate-300 px-3 py-2 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+              placeholder="General Purpose"
+            />
+            <datalist id="tenant-options">
+              <option value="">General Purpose</option>
+              {tenants.map((tenant) => (
+                <option key={tenant.id} value={tenant.id}>
+                  {tenant.name}
+                </option>
+              ))}
+            </datalist>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Select existing or type new tenant name to create
             </p>
           </div>
 
