@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-01-11
+
 ### Added
 - Tenant management system for organizing agents by client (FA-8)
 - Tenants table with unique name constraint and nullable tenantId foreign key on agents (FA-8)
