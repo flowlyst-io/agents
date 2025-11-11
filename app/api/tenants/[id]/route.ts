@@ -14,9 +14,38 @@ export async function PATCH(
     const { name } = body;
 
     // Validation
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
+    if (!name || typeof name !== "string") {
       return NextResponse.json(
         { error: "Tenant name is required" },
+        { status: 400 }
+      );
+    }
+
+    const trimmedName = name.trim();
+
+    // Length validation (1-255 characters)
+    if (trimmedName.length === 0) {
+      return NextResponse.json(
+        { error: "Tenant name cannot be empty" },
+        { status: 400 }
+      );
+    }
+
+    if (trimmedName.length > 255) {
+      return NextResponse.json(
+        { error: "Tenant name must be 255 characters or less" },
+        { status: 400 }
+      );
+    }
+
+    // Character validation (alphanumeric, spaces, hyphens, underscores, dots)
+    const validNamePattern = /^[a-zA-Z0-9\s\-_.]+$/;
+    if (!validNamePattern.test(trimmedName)) {
+      return NextResponse.json(
+        {
+          error:
+            "Tenant name can only contain letters, numbers, spaces, hyphens, underscores, and dots",
+        },
         { status: 400 }
       );
     }
@@ -25,7 +54,7 @@ export async function PATCH(
     const updatedTenant = await db
       .update(tenants)
       .set({
-        name: name.trim(),
+        name: trimmedName,
         updatedAt: new Date(),
       })
       .where(eq(tenants.id, id))

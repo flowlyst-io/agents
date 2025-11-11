@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { tenants, agents } from "@/lib/db/schema";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, count } from "drizzle-orm";
 
 // GET /api/tenants - List all tenants with agent counts
 export async function GET() {
@@ -12,7 +12,7 @@ export async function GET() {
         name: tenants.name,
         createdAt: tenants.createdAt,
         updatedAt: tenants.updatedAt,
-        agentCount: sql<number>`cast(count(${agents.id}) as int)`,
+        agentCount: count(agents.id),
       })
       .from(tenants)
       .leftJoin(agents, eq(agents.tenantId, tenants.id))
@@ -36,9 +36,38 @@ export async function POST(request: Request) {
     const { name } = body;
 
     // Validation
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
+    if (!name || typeof name !== "string") {
       return NextResponse.json(
         { error: "Tenant name is required" },
+        { status: 400 }
+      );
+    }
+
+    const trimmedName = name.trim();
+
+    // Length validation (1-255 characters)
+    if (trimmedName.length === 0) {
+      return NextResponse.json(
+        { error: "Tenant name cannot be empty" },
+        { status: 400 }
+      );
+    }
+
+    if (trimmedName.length > 255) {
+      return NextResponse.json(
+        { error: "Tenant name must be 255 characters or less" },
+        { status: 400 }
+      );
+    }
+
+    // Character validation (alphanumeric, spaces, hyphens, underscores, dots)
+    const validNamePattern = /^[a-zA-Z0-9\s\-_.]+$/;
+    if (!validNamePattern.test(trimmedName)) {
+      return NextResponse.json(
+        {
+          error:
+            "Tenant name can only contain letters, numbers, spaces, hyphens, underscores, and dots",
+        },
         { status: 400 }
       );
     }
@@ -47,7 +76,7 @@ export async function POST(request: Request) {
     const newTenant = await db
       .insert(tenants)
       .values({
-        name: name.trim(),
+        name: trimmedName,
       })
       .returning();
 

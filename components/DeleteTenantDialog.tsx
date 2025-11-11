@@ -70,7 +70,7 @@ export function DeleteTenantDialog({
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete "{tenant.name}"?</AlertDialogTitle>
+          <AlertDialogTitle>Delete &quot;{tenant.name}&quot;?</AlertDialogTitle>
           <AlertDialogDescription>
             This tenant has <strong>{tenant.agentCount} agent{tenant.agentCount !== 1 ? "s" : ""}</strong> assigned.
             What should happen to them?

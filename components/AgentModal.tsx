@@ -184,7 +184,7 @@ export function AgentModal({ isOpen, agent, tenants, onSave, onClose }: AgentMod
                     />
                     <CommandList>
                       <CommandEmpty>
-                        Create "{inputValue}"
+                        Create &quot;{inputValue}&quot;
                       </CommandEmpty>
                       <CommandGroup>
                         {/* General Purpose Option */}
