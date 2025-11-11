@@ -11,12 +11,12 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, slug, workflowId } = body;
+    const { name, slug, workflowId, tenantId } = body;
 
     // Validation: at least one field must be provided
-    if (!name && !slug && !workflowId) {
+    if (!name && !slug && !workflowId && tenantId === undefined) {
       return NextResponse.json(
-        { error: "At least one field (name, slug, workflowId) must be provided" },
+        { error: "At least one field (name, slug, workflowId, tenantId) must be provided" },
         { status: 400 }
       );
     }
@@ -57,6 +57,7 @@ export async function PATCH(
       name?: string;
       slug?: string;
       workflowId?: string;
+      tenantId?: string | null;
       updatedAt: Date;
     } = {
       updatedAt: new Date(),
@@ -65,6 +66,7 @@ export async function PATCH(
     if (name) updateData.name = name;
     if (slug) updateData.slug = slug;
     if (workflowId) updateData.workflowId = workflowId;
+    if (tenantId !== undefined) updateData.tenantId = tenantId || null;
 
     // Update agent
     const updatedAgent = await db
