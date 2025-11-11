@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-01-11
+
+### Added
+- Tenant management system for organizing agents by client (FA-8)
+- Tenants table with unique name constraint and nullable tenantId foreign key on agents (FA-8)
+- Admin UI with two-tab interface (Agents/Tenants) for managing agents and tenants (FA-8)
+- Tenant CRUD operations: create, rename, and delete with three deletion options (FA-8)
+- Smart tenant deletion with options to make agents general purpose, reassign to another tenant, or delete agents (FA-8)
+- Agent-tenant assignment capabilities: assign on create, assign on edit, and reassign between tenants (FA-8)
+- Tenant filtering in agents list with General Purpose category for unassigned agents (FA-8)
+- Inline tenant creation directly in agent modal via Command+Popover combobox (FA-8)
+- shadcn/ui component library infrastructure with Dialog, Tabs, Command, Popover, AlertDialog, Select, Button, Input, Label, and RadioGroup (FA-8)
+- Click-to-filter navigation from tenant list to filtered agents view (FA-8)
+- Visual tenant badges with color coding in agents table (FA-8)
+
+### Changed
+- Migrated admin UI components from custom implementations to shadcn/ui for better accessibility and maintainability (FA-8)
+- Restored original dark theme as default (#0a0a0a background) to match develop branch styling (FA-8)
+- Updated Engineering Reference Guide with shadcn/ui component library documentation and usage guidelines (FA-8)
+
+### Fixed
+- Agent modal combobox now correctly distinguishes between selecting existing tenants vs creating new ones, preventing duplicate key errors (FA-8)
+- Dark theme color contrast issues in admin dashboard for improved tab visibility (FA-8)
+
 ## [0.2.4] - 2025-11-10
 
 ### Added

@@ -17,6 +17,7 @@ This is a Next.js starter application that integrates **OpenAI ChatKit** to enab
 
 ### Key Dependencies
 - **@openai/chatkit-react** - Official ChatKit web component and React hooks
+- **shadcn/ui** - Copy-paste component library built on Radix UI primitives
 - **Tailwind CSS 4** - Utility-first styling with PostCSS integration
 - **Drizzle ORM 0.44.6** - Type-safe SQL ORM with schema inference
 - **pg 8.16.3** - PostgreSQL client with connection pooling
@@ -48,6 +49,7 @@ openai-chatkit-starter-app/
 │       └── create-session/
 │           └── route.ts   # Edge API endpoint for ChatKit session creation
 ├── components/            # Reusable React components
+│   ├── ui/                # shadcn/ui components (auto-generated)
 │   ├── AgentModal.tsx     # Agent create/edit modal
 │   ├── ChatKitPanel.tsx   # ChatKit integration container
 │   └── ErrorOverlay.tsx   # Error and loading state UI
@@ -615,6 +617,109 @@ onResponseEnd: () => {
 
 ---
 
+## UI Component Library
+
+### shadcn/ui
+
+**Philosophy**: Copy-paste component library built on Radix UI primitives. Components are copied into your codebase (`components/ui/`) and can be customized freely. No runtime dependency on shadcn (it's just a CLI tool).
+
+**Location**: `components/ui/`
+
+**Configuration**: `components.json` at project root
+
+#### When to Use shadcn/ui
+
+Use shadcn for standard UI patterns that benefit from accessibility and consistent behavior:
+
+- **Dialogs & Modals**: Use `<Dialog>` instead of custom fixed-position divs
+- **Dropdowns & Menus**: Use `<DropdownMenu>` for better keyboard navigation and focus management
+- **Form Controls**: Use `<Input>`, `<Select>`, `<Checkbox>`, `<RadioGroup>` for consistent styling
+- **Navigation**: Use `<Tabs>`, `<Accordion>` for interactive content organization
+- **Feedback**: Use `<Toast>`, `<Alert>` for user notifications
+- **Buttons**: Use `<Button>` for consistent button styles and variants
+
+#### When to Build Custom Components
+
+Build custom components when:
+
+- **ChatKit-specific integrations**: Components that interact with OpenAI ChatKit APIs
+- **Domain-specific logic**: Business logic tightly coupled to your application
+- **One-off UI**: Unique designs that won't be reused elsewhere
+- **shadcn doesn't provide it**: Specialized components not in the shadcn library
+
+#### Adding Components
+
+Add components on-demand using the shadcn CLI:
+
+```bash
+npx shadcn@latest add button
+npx shadcn@latest add dialog
+npx shadcn@latest add dropdown-menu
+npx shadcn@latest add input
+npx shadcn@latest add select
+```
+
+This copies the component source into `components/ui/` where you can customize it.
+
+#### Component Usage Example
+
+```tsx
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+export function ExampleModal() {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">Open Dialog</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Example Title</DialogTitle>
+          <DialogDescription>
+            This dialog uses shadcn/ui components with built-in accessibility.
+          </DialogDescription>
+        </DialogHeader>
+        {/* Dialog content */}
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
+#### Customization
+
+All shadcn components live in your codebase and can be modified:
+
+- **Styles**: Edit Tailwind classes directly in `components/ui/[component].tsx`
+- **Behavior**: Modify component logic as needed
+- **Props**: Add custom props to extend functionality
+- **Theme**: Configured via CSS variables in `app/globals.css`
+
+#### Accessibility Features
+
+shadcn/ui components include:
+
+- **Focus management**: Automatic focus traps in modals/dialogs
+- **ARIA attributes**: Proper labeling for screen readers
+- **Keyboard navigation**: Arrow keys, Enter, Escape handling
+- **Screen reader support**: Announcements for state changes
+
+#### Documentation
+
+- **Official Docs**: https://ui.shadcn.com/docs
+- **Component Reference**: https://ui.shadcn.com/docs/components
+- **Radix UI Primitives**: https://www.radix-ui.com/primitives
+
+---
+
 ## Resources
 
 ### Official Documentation
@@ -648,6 +753,6 @@ onResponseEnd: () => {
 
 ---
 
-**Version**: 1.1
-**Last Updated**: 2025-10-14 (FA-3: Removed App.tsx, documented direct embed pattern)
+**Version**: 1.2
+**Last Updated**: 2025-11-11 (FA-8: Added shadcn/ui component library infrastructure and documentation)
 **Maintainer**: Project Team
