@@ -31,7 +31,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, workflowId } = body;
+    const { name, workflowId, tenantId } = body;
 
     // Validation
     if (!name || !workflowId) {
@@ -44,13 +44,14 @@ export async function POST(request: Request) {
     // Generate random slug
     const slug = generateSlug();
 
-    // Create agent
+    // Create agent with optional tenantId
     const newAgent = await db
       .insert(agents)
       .values({
         name,
         slug,
         workflowId,
+        tenantId: tenantId || null,
       })
       .returning();
 
