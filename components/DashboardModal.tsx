@@ -182,19 +182,45 @@ export function DashboardModal({
           throw new Error(error.error || "Failed to update dashboard");
         }
 
-        // Update agents - first get current agents to compare
+        // Update agents - fetch original agents to calculate diff
+        const dashboardResponse = await fetch(`/api/dashboards/${dashboardId}`);
+        if (!dashboardResponse.ok) {
+          throw new Error("Failed to fetch original dashboard");
+        }
+        const originalDashboard: DashboardWithAgents = await dashboardResponse.json();
+        const originalAgentIds = (originalDashboard.agents || []).map((a) => a.id);
         const currentAgentIds = selectedAgents.map((a) => a.id);
 
-        // Set new agents
-        const agentsResponse = await fetch(`/api/dashboards/${dashboardId}/agents`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agentIds: currentAgentIds }),
-        });
+        // Calculate agents to remove and add
+        const toRemove = originalAgentIds.filter(id => !currentAgentIds.includes(id));
+        const toAdd = currentAgentIds.filter(id => !originalAgentIds.includes(id));
 
-        if (!agentsResponse.ok) {
-          const error = await agentsResponse.json();
-          throw new Error(error.error || "Failed to update agents");
+        // Remove agents that were deselected
+        if (toRemove.length > 0) {
+          const removeResponse = await fetch(`/api/dashboards/${dashboardId}/agents`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agentIds: toRemove }),
+          });
+
+          if (!removeResponse.ok) {
+            const error = await removeResponse.json();
+            throw new Error(error.error || "Failed to remove agents");
+          }
+        }
+
+        // Add new agents that were selected
+        if (toAdd.length > 0) {
+          const addResponse = await fetch(`/api/dashboards/${dashboardId}/agents`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agentIds: toAdd }),
+          });
+
+          if (!addResponse.ok) {
+            const error = await addResponse.json();
+            throw new Error(error.error || "Failed to add agents");
+          }
         }
       } else {
         // Create new dashboard

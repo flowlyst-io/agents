@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { dashboards, tenants } from "@/lib/db/schema";
+import { dashboards, dashboardAgents, tenants } from "@/lib/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
@@ -27,8 +27,8 @@ export async function GET(request: Request) {
         updatedAt: dashboards.updatedAt,
         agentCount: sql<number>`(
           SELECT COUNT(*)::int
-          FROM dashboard_agents
-          WHERE dashboard_agents.dashboard_id = ${dashboards.id}
+          FROM ${dashboardAgents}
+          WHERE ${dashboardAgents.dashboardId} = ${dashboards.id}
         )`,
       })
       .from(dashboards)
