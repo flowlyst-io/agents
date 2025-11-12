@@ -2,34 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { dashboards, tenants } from "@/lib/db/schema";
 import { desc, eq, sql } from "drizzle-orm";
+import { randomBytes } from "crypto";
 
-// Generate slug from title
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-// Ensure unique slug by appending number if needed
-async function ensureUniqueSlug(baseSlug: string): Promise<string> {
-  let slug = baseSlug;
-  let counter = 2;
-
-  while (true) {
-    const existing = await db
-      .select()
-      .from(dashboards)
-      .where(eq(dashboards.slug, slug))
-      .limit(1);
-
-    if (existing.length === 0) {
-      return slug;
-    }
-
-    slug = `${baseSlug}-${counter}`;
-    counter++;
-  }
+// Generate a random 16-character hex string for slug
+function generateSlug(): string {
+  return randomBytes(8).toString("hex");
 }
 
 // GET /api/dashboards - List all dashboards with tenant info and agent count
@@ -84,7 +61,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, slug: providedSlug, tenantId } = body;
+    const { title, tenantId } = body;
 
     // Validation
     if (!title) {
@@ -94,16 +71,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate or use provided slug
-    const baseSlug = providedSlug || generateSlug(title);
-    const uniqueSlug = await ensureUniqueSlug(baseSlug);
+    // Generate random slug
+    const slug = generateSlug();
 
     // Create dashboard with optional tenantId
     const newDashboard = await db
       .insert(dashboards)
       .values({
         title,
-        slug: uniqueSlug,
+        slug,
         tenantId: tenantId || null,
       })
       .returning();
@@ -112,7 +88,7 @@ export async function POST(request: Request) {
   } catch (error: unknown) {
     console.error("Failed to create dashboard:", error);
 
-    // Handle unique constraint violation (duplicate slug - shouldn't happen with our logic)
+    // Handle unique constraint violation (duplicate slug)
     if (
       error &&
       typeof error === "object" &&
