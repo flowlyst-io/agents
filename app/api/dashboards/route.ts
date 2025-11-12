@@ -61,7 +61,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, tenantId } = body;
+    const { title, slug: providedSlug, tenantId } = body;
 
     // Validation
     if (!title) {
@@ -71,8 +71,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate random slug
-    const slug = generateSlug();
+    // Use provided slug (for legacy migration) or generate random
+    const slug = providedSlug || generateSlug();
 
     // Create dashboard with optional tenantId
     const newDashboard = await db

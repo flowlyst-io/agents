@@ -358,7 +358,7 @@ export default function AdminPage() {
     const origin =
       typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
     return `<iframe
-  src="${origin}/embed/dashboard/db/${slug}"
+  src="${origin}/embed/dashboard/${slug}"
   width="100%"
   height="700"
   style="border:none; border-radius:12px; overflow:hidden">
@@ -749,7 +749,7 @@ export default function AdminPage() {
                           </td>
                           <td className="px-6 py-4 text-right text-sm">
                             <a
-                              href={`/embed/dashboard/db/${dashboard.slug}`}
+                              href={`/embed/dashboard/${dashboard.slug}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="mr-2 text-blue-600 hover:underline dark:text-blue-400"
