@@ -116,13 +116,13 @@ export function DashboardAgentPicker({
 
   return (
     <div className="space-y-3">
-      <Label>Agents</Label>
+      <Label className="text-base font-semibold">Select Agents</Label>
 
       {/* Tenant Filter */}
       <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Filter by:</span>
+        <Label htmlFor="tenant-filter" className="text-sm">Filter by tenant:</Label>
         <Select value={tenantFilter} onValueChange={setTenantFilter}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger id="tenant-filter" className="w-[200px]">
             <SelectValue placeholder="Select tenant" />
           </SelectTrigger>
           <SelectContent>
@@ -139,23 +139,31 @@ export function DashboardAgentPicker({
 
       {/* Selected Agents Badges */}
       {selectedAgents.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {selectedAgents.map((agent) => (
-            <Badge key={agent.id} variant="secondary" className="gap-1">
-              {agent.name}
-              <button
-                type="button"
-                onClick={() => handleRemoveAgent(agent.id)}
-                className="ml-1 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
+        <div className="rounded-lg border bg-slate-50 dark:bg-slate-900 p-3 space-y-2">
+          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            Selected Agents ({selectedAgents.length})
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {selectedAgents.map((agent) => (
+              <Badge key={agent.id} variant="secondary" className="gap-1">
+                {agent.name}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveAgent(agent.id)}
+                  className="ml-1 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
         </div>
       )}
 
       {/* Agent Search/Select */}
+      <div className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+        Available Agents
+      </div>
       <Command className="rounded-lg border">
         <CommandInput
           placeholder="Search agents..."
@@ -189,7 +197,7 @@ export function DashboardAgentPicker({
       </Command>
 
       <p className="text-xs text-muted-foreground">
-        Search and select agents to add to this dashboard
+        Click an agent below to add it to your dashboard
       </p>
     </div>
   );

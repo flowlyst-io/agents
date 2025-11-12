@@ -254,10 +254,10 @@ export function DashboardModal({
         {isLoading ? (
           <div className="py-8 text-center text-muted-foreground">Loading...</div>
         ) : (
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-4 py-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
               {/* Title Field */}
-              <div className="grid gap-2">
+              <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
@@ -270,7 +270,7 @@ export function DashboardModal({
 
               {/* Slug Field (read-only in edit mode) */}
               {dashboardId && slug && (
-                <div className="grid gap-2">
+                <div className="space-y-2">
                   <Label htmlFor="slug">Slug</Label>
                   <Input id="slug" value={slug} disabled className="bg-slate-100 dark:bg-slate-800" />
                   <p className="text-xs text-muted-foreground">Slug cannot be changed after creation</p>
@@ -278,15 +278,15 @@ export function DashboardModal({
               )}
 
               {/* Tenant Combobox */}
-              <div className="grid gap-2">
-                <Label>Tenant</Label>
+              <div className="space-y-2">
+                <Label>Tenant (Optional)</Label>
                 <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       role="combobox"
                       aria-expanded={popoverOpen}
-                      className="justify-between"
+                      className="w-full justify-between"
                     >
                       {getTenantDisplayValue()}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -359,7 +359,7 @@ export function DashboardModal({
               )}
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="gap-2 sm:gap-0">
               <Button
                 type="button"
                 variant="outline"
