@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { AgentModal } from "@/components/AgentModal";
 import { TenantModal } from "@/components/TenantModal";
 import { DeleteTenantDialog } from "@/components/DeleteTenantDialog";
+import { DashboardModal } from "@/components/DashboardModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -12,15 +13,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import type { Agent, Tenant } from "@/lib/db/schema";
+import { Badge } from "@/components/ui/badge";
+import { Copy, Check } from "lucide-react";
+import type { Agent, Tenant, Dashboard } from "@/lib/db/schema";
 
 type TenantWithCount = Tenant & { agentCount: number };
+type DashboardWithAgents = Dashboard & { agents: Agent[] };
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"agents" | "tenants">("agents");
+  const [activeTab, setActiveTab] = useState<"agents" | "tenants" | "dashboards">("agents");
   const [agents, setAgents] = useState<Agent[]>([]);
   const [tenants, setTenants] = useState<TenantWithCount[]>([]);
+  const [dashboards, setDashboards] = useState<DashboardWithAgents[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Agent modal state
@@ -35,6 +50,16 @@ export default function AdminPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingTenant, setDeletingTenant] = useState<TenantWithCount | null>(null);
 
+  // Dashboard modal state
+  const [isDashboardModalOpen, setIsDashboardModalOpen] = useState(false);
+  const [editingDashboardId, setEditingDashboardId] = useState<string | null>(null);
+
+  // Dashboard UI state
+  const [dashboardTenantFilter, setDashboardTenantFilter] = useState<string>("all");
+  const [copiedDashboardId, setCopiedDashboardId] = useState<string | null>(null);
+  const [deletingDashboard, setDeletingDashboard] = useState<DashboardWithAgents | null>(null);
+  const [isDeleteDashboardDialogOpen, setIsDeleteDashboardDialogOpen] = useState(false);
+
   // Agent list UI state
   const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
   const [copiedAgentId, setCopiedAgentId] = useState<string | null>(null);
@@ -47,9 +72,10 @@ export default function AdminPage() {
 
   const fetchData = async () => {
     try {
-      const [agentsRes, tenantsRes] = await Promise.all([
+      const [agentsRes, tenantsRes, dashboardsRes] = await Promise.all([
         fetch("/api/agents"),
         fetch("/api/tenants"),
+        fetch("/api/dashboards"),
       ]);
 
       if (agentsRes.ok) {
@@ -60,6 +86,11 @@ export default function AdminPage() {
       if (tenantsRes.ok) {
         const tenantsData = await tenantsRes.json();
         setTenants(tenantsData);
+      }
+
+      if (dashboardsRes.ok) {
+        const dashboardsData = await dashboardsRes.json();
+        setDashboards(dashboardsData);
       }
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -281,11 +312,75 @@ export default function AdminPage() {
     setTenantFilter(tenantId);
   };
 
+  // Dashboard handlers
+  const handleCreateDashboard = () => {
+    setEditingDashboardId(null);
+    setIsDashboardModalOpen(true);
+  };
+
+  const handleEditDashboard = (dashboardId: string) => {
+    setEditingDashboardId(dashboardId);
+    setIsDashboardModalOpen(true);
+  };
+
+  const handleDeleteDashboard = (dashboard: DashboardWithAgents) => {
+    setDeletingDashboard(dashboard);
+    setIsDeleteDashboardDialogOpen(true);
+  };
+
+  const handleConfirmDeleteDashboard = async () => {
+    if (!deletingDashboard) return;
+
+    try {
+      const response = await fetch(`/api/dashboards/${deletingDashboard.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete dashboard");
+      }
+
+      await fetchData();
+      setIsDeleteDashboardDialogOpen(false);
+      setDeletingDashboard(null);
+    } catch (error) {
+      console.error("Failed to delete dashboard:", error);
+      alert(error instanceof Error ? error.message : "Failed to delete dashboard");
+    }
+  };
+
+  const getEmbedCode = (slug: string) => {
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    return `<iframe src="${origin}/embed/dashboard/db/${slug}" width="100%" height="600px" frameborder="0"></iframe>`;
+  };
+
+  const copyEmbedCode = async (slug: string, dashboardId: string) => {
+    try {
+      await navigator.clipboard.writeText(getEmbedCode(slug));
+      setCopiedDashboardId(dashboardId);
+      setTimeout(() => {
+        setCopiedDashboardId(null);
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      alert("Failed to copy to clipboard");
+    }
+  };
+
   // Filter agents by tenant
   const filteredAgents = agents.filter((agent) => {
     if (tenantFilter === "all") return true;
     if (tenantFilter === "general") return agent.tenantId === null;
     return agent.tenantId === tenantFilter;
+  });
+
+  // Filter dashboards by tenant
+  const filteredDashboards = dashboards.filter((dashboard) => {
+    if (dashboardTenantFilter === "all") return true;
+    if (dashboardTenantFilter === "general") return dashboard.tenantId === null;
+    return dashboard.tenantId === dashboardTenantFilter;
   });
 
   if (isLoading) {
@@ -304,10 +399,11 @@ export default function AdminPage() {
           Admin Dashboard
         </h1>
 
-        <Tabs defaultValue="agents" value={activeTab} onValueChange={(value) => setActiveTab(value as "agents" | "tenants")}>
+        <Tabs defaultValue="agents" value={activeTab} onValueChange={(value) => setActiveTab(value as "agents" | "tenants" | "dashboards")}>
           <TabsList className="mb-6">
             <TabsTrigger value="agents">Agents</TabsTrigger>
             <TabsTrigger value="tenants">Tenants</TabsTrigger>
+            <TabsTrigger value="dashboards">Dashboards</TabsTrigger>
           </TabsList>
 
           {/* Agents Tab */}
@@ -562,6 +658,124 @@ export default function AdminPage() {
             </div>
             </div>
           </TabsContent>
+
+          {/* Dashboards Tab */}
+          <TabsContent value="dashboards">
+            <div>
+            {/* Dashboards Tab Header */}
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <label htmlFor="dashboard-tenant-filter" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Filter by Tenant:
+                </label>
+                <Select value={dashboardTenantFilter} onValueChange={setDashboardTenantFilter}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select tenant" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tenants</SelectItem>
+                    <SelectItem value="general">General Purpose</SelectItem>
+                    {tenants.map((tenant) => (
+                      <SelectItem key={tenant.id} value={tenant.id}>
+                        {tenant.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleCreateDashboard}>
+                + New Dashboard
+              </Button>
+            </div>
+
+            {/* Dashboards List */}
+            {filteredDashboards.length === 0 ? (
+              <div className="rounded-lg bg-white p-12 text-center shadow dark:bg-slate-800">
+                <p className="text-slate-600 dark:text-slate-400">
+                  {dashboardTenantFilter === "all"
+                    ? "No dashboards yet. Create your first dashboard to get started!"
+                    : "No dashboards found for this filter."}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-lg bg-white shadow dark:bg-slate-800">
+                <table className="w-full">
+                  <thead className="bg-slate-50 dark:bg-slate-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 dark:text-white">
+                        Title
+                      </th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 dark:text-white">
+                        Tenant
+                      </th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 dark:text-white">
+                        Agents
+                      </th>
+                      <th className="px-6 py-3 text-right text-sm font-semibold text-slate-900 dark:text-white">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-600">
+                    {filteredDashboards.map((dashboard) => (
+                      <tr key={dashboard.id} className="hover:bg-slate-50 dark:hover:bg-slate-700">
+                        <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">
+                          {dashboard.title}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          <Badge
+                            variant={dashboard.tenantId ? "default" : "secondary"}
+                            className={
+                              dashboard.tenantId
+                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                : "bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200"
+                            }
+                          >
+                            {getTenantName(dashboard.tenantId)}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                          {dashboard.agents?.length || 0}
+                        </td>
+                        <td className="px-6 py-4 text-right text-sm">
+                          <button
+                            onClick={() => copyEmbedCode(dashboard.slug, dashboard.id)}
+                            className="mr-2 inline-flex items-center text-blue-600 hover:underline dark:text-blue-400"
+                            title="Copy embed code"
+                          >
+                            {copiedDashboardId === dashboard.id ? (
+                              <>
+                                <Check className="mr-1 h-3 w-3" />
+                                Copied
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="mr-1 h-3 w-3" />
+                                Copy Embed
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleEditDashboard(dashboard.id)}
+                            className="mr-2 text-slate-600 hover:underline dark:text-slate-400"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDashboard(dashboard)}
+                            className="text-red-600 hover:underline dark:text-red-400"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -589,6 +803,40 @@ export default function AdminPage() {
           onDelete={handleConfirmDeleteTenant}
           onClose={() => setIsDeleteDialogOpen(false)}
         />
+      )}
+
+      <DashboardModal
+        open={isDashboardModalOpen}
+        onOpenChange={setIsDashboardModalOpen}
+        dashboardId={editingDashboardId}
+        onSuccess={fetchData}
+      />
+
+      {deletingDashboard && (
+        <AlertDialog open={isDeleteDashboardDialogOpen} onOpenChange={setIsDeleteDashboardDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete &quot;{deletingDashboard.title}&quot;?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete this dashboard. This action cannot be undone.
+                {deletingDashboard.agents?.length > 0 && (
+                  <span className="block mt-2 font-medium">
+                    Note: The {deletingDashboard.agents.length} agent{deletingDashboard.agents.length !== 1 ? "s" : ""} in this dashboard will not be deleted.
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmDeleteDashboard}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete Dashboard
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );

@@ -38,6 +38,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get("tenantId");
 
+    // Build base query with $dynamic() for conditional chaining
     let query = db
       .select({
         id: dashboards.id,
@@ -55,9 +56,9 @@ export async function GET(request: Request) {
       })
       .from(dashboards)
       .leftJoin(tenants, eq(dashboards.tenantId, tenants.id))
-      .orderBy(desc(dashboards.createdAt));
+      .$dynamic();
 
-    // Filter by tenant if provided
+    // Apply tenant filter if provided
     if (tenantId && tenantId !== "all") {
       if (tenantId === "general") {
         query = query.where(sql`${dashboards.tenantId} IS NULL`);
@@ -66,7 +67,8 @@ export async function GET(request: Request) {
       }
     }
 
-    const allDashboards = await query;
+    // Apply ordering and execute
+    const allDashboards = await query.orderBy(desc(dashboards.createdAt));
 
     return NextResponse.json(allDashboards);
   } catch (error) {
