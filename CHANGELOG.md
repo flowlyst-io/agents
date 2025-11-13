@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Dashboard embed route backwards compatibility maintained for legacy CLIENT_WORKFLOWS configurations (FA-7)
+- Dashboard agent association API (POST/DELETE `/api/dashboards/[id]/agents`) URL construction error in Vercel deployment causing "Failed to parse URL" errors (FA-7)
 
 ## [0.3.0] - 2025-01-11
 
