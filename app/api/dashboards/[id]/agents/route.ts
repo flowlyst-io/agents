@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { dashboards, dashboardAgents, agents } from "@/lib/db/schema";
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 // POST /api/dashboards/[id]/agents - Add agents to dashboard
 export async function POST(
@@ -121,7 +121,10 @@ export async function DELETE(
     await db
       .delete(dashboardAgents)
       .where(
-        sql`${dashboardAgents.dashboardId} = ${id} AND ${dashboardAgents.agentId} = ANY(${agentIds})`
+        and(
+          eq(dashboardAgents.dashboardId, id),
+          inArray(dashboardAgents.agentId, agentIds)
+        )
       );
 
     // Return updated dashboard

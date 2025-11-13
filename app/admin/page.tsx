@@ -28,7 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Agent, Tenant, Dashboard } from "@/lib/db/schema";
 
 type TenantWithCount = Tenant & { agentCount: number };
-type DashboardWithAgents = Dashboard & { agents: Agent[] };
+type DashboardWithAgents = Dashboard & { agents?: Agent[]; agentCount?: number };
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<"agents" | "tenants" | "dashboards">("agents");
@@ -745,7 +745,7 @@ export default function AdminPage() {
                             </Badge>
                           </td>
                           <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                            {dashboard.agents?.length || 0}
+                            {dashboard.agentCount || 0}
                           </td>
                           <td className="px-6 py-4 text-right text-sm">
                             <a
@@ -883,9 +883,9 @@ export default function AdminPage() {
               <AlertDialogTitle>Delete &quot;{deletingDashboard.title}&quot;?</AlertDialogTitle>
               <AlertDialogDescription>
                 This will permanently delete this dashboard. This action cannot be undone.
-                {deletingDashboard.agents?.length > 0 && (
+                {(deletingDashboard.agentCount || 0) > 0 && (
                   <span className="block mt-2 font-medium">
-                    Note: The {deletingDashboard.agents.length} agent{deletingDashboard.agents.length !== 1 ? "s" : ""} in this dashboard will not be deleted.
+                    Note: The {deletingDashboard.agentCount} agent{deletingDashboard.agentCount !== 1 ? "s" : ""} in this dashboard will not be deleted.
                   </span>
                 )}
               </AlertDialogDescription>
