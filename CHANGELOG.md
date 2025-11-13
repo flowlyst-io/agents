@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-11-12
+
 ### Added
 - Database-driven dashboard management system with admin UI for creating and managing client dashboards (FA-7)
 - Dashboards table with many-to-many relationship to agents via dashboard_agents junction table (FA-7)
