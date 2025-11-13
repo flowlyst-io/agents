@@ -36,8 +36,8 @@ This is a Next.js starter application that integrates **OpenAI ChatKit** to enab
 ```
 openai-chatkit-starter-app/
 ├── app/                    # Next.js App Router pages and API routes
-│   ├── admin/             # Agent management dashboard (no auth)
-│   │   └── page.tsx
+│   ├── admin/             # Agent and tenant management dashboard (no auth)
+│   │   └── page.tsx      # Two-tab UI (Agents/Tenants)
 │   ├── embed/             # Public embeddable agent routes
 │   │   └── [slug]/page.tsx
 │   ├── page.tsx           # Root page entry
@@ -46,11 +46,16 @@ openai-chatkit-starter-app/
 │       ├── agents/        # Agent CRUD endpoints
 │       │   ├── route.ts          # GET (list), POST (create)
 │       │   └── [id]/route.ts     # PATCH (update), DELETE
+│       ├── tenants/       # Tenant CRUD endpoints
+│       │   ├── route.ts          # GET (list), POST (create)
+│       │   └── [id]/route.ts     # PATCH (update), DELETE
 │       └── create-session/
 │           └── route.ts   # Edge API endpoint for ChatKit session creation
 ├── components/            # Reusable React components
-│   ├── ui/                # shadcn/ui components (auto-generated)
-│   ├── AgentModal.tsx     # Agent create/edit modal
+│   ├── ui/                # shadcn/ui components (Dialog, Tabs, Command, etc.)
+│   ├── AgentModal.tsx     # Agent create/edit modal with tenant assignment
+│   ├── TenantModal.tsx    # Tenant create/edit modal
+│   ├── DeleteTenantDialog.tsx  # Smart tenant deletion with agent handling
 │   ├── ChatKitPanel.tsx   # ChatKit integration container
 │   └── ErrorOverlay.tsx   # Error and loading state UI
 ├── hooks/                 # Custom React hooks
@@ -58,8 +63,9 @@ openai-chatkit-starter-app/
 ├── lib/                   # Shared utilities and configuration
 │   ├── db/                # Database layer
 │   │   ├── index.ts      # Connection pool and Drizzle instance
-│   │   └── schema.ts     # Database schema definitions
-│   └── config.ts          # App-wide constants and ChatKit settings
+│   │   └── schema.ts     # Database schema (agents, tenants tables)
+│   ├── config.ts          # App-wide constants and ChatKit settings
+│   └── utils.ts           # Utility functions (cn helper for Tailwind)
 └── public/                # Static assets
 ```
 
@@ -85,8 +91,24 @@ Database schema defined in TypeScript (`lib/db/schema.ts`) serves as single sour
 ### Migration Workflow
 Schema changes use migration files for production deployments. Run `npm run db:generate` to create migrations from schema changes, `npm run db:migrate` to apply locally. Vercel deployments automatically run migrations via `vercel-build` script before building the application.
 
-### Agents Table Structure
-Stores agent configurations with UUID primary keys, unique slugs for URL routing, and workflow IDs for ChatKit integration. Timestamps track creation and modification.
+### Database Schema
+
+**Tenants Table** (`tenants`):
+- `id` (UUID, PK) - Unique tenant identifier
+- `name` (TEXT, UNIQUE, NOT NULL) - Tenant name (1-255 chars, validated)
+- `created_at` (TIMESTAMP) - Creation timestamp
+- `updated_at` (TIMESTAMP) - Last modification timestamp
+
+**Agents Table** (`agents`):
+- `id` (UUID, PK) - Unique agent identifier
+- `name` (TEXT, NOT NULL) - Agent display name
+- `slug` (TEXT, UNIQUE, NOT NULL) - URL-safe identifier for embed routes
+- `workflow_id` (TEXT, NOT NULL) - OpenAI Agent Builder workflow ID
+- `tenant_id` (UUID, NULLABLE, FK → tenants.id) - Optional tenant assignment
+  - `NULL` = "General Purpose" agent (no specific tenant)
+  - Foreign key with `ON DELETE NO ACTION` (enforces business logic via app)
+- `created_at` (TIMESTAMP) - Creation timestamp
+- `updated_at` (TIMESTAMP) - Last modification timestamp
 
 ---
 
@@ -99,7 +121,116 @@ Agents stored in PostgreSQL enable multiple ChatKit workflows from a single appl
 Public embed routes are server components that query the database, handle 404s for invalid slugs, and render the same ChatKitPanel used in the main app—but with a different workflow. No client-side routing or state management needed for embeds.
 
 ### Admin Interface
-Management UI (`/admin`) provides CRUD operations and generates iframe snippets for each agent. No authentication in MVP—add via middleware or route protection as needed for production.
+Management UI (`/admin`) provides CRUD operations for agents and tenants with a two-tab interface. Features include agent-tenant assignment, tenant filtering, and smart tenant deletion with multiple agent handling options. No authentication in MVP—add via middleware or route protection as needed for production.
+
+---
+
+## Tenant Management System
+
+### Overview
+Tenant management enables organization of agents by client, providing logical grouping and filtering capabilities. Agents can be assigned to specific tenants or marked as "General Purpose" for universal use.
+
+### Architecture
+
+**Tenant CRUD Operations**:
+- **Create**: Unique name validation (1-255 chars, alphanumeric + spaces/hyphens/underscores/dots)
+- **Read**: List all tenants with agent counts via LEFT JOIN aggregation
+- **Update**: Rename tenants with uniqueness constraint enforcement
+- **Delete**: Smart deletion with three agent handling options
+
+**Agent-Tenant Assignment**:
+- Assign tenant during agent creation
+- Change tenant assignment via agent edit
+- Remove assignment (revert to General Purpose)
+- Filter agents by tenant in admin UI
+
+### Smart Tenant Deletion
+
+When deleting a tenant with assigned agents, users choose one of three options:
+
+1. **Make General Purpose** (`make_general`):
+   - Sets all agents' `tenant_id` to `NULL`
+   - Agents become available to all tenants
+   - No data loss
+
+2. **Reassign** (`reassign`):
+   - Bulk transfers all agents to another existing tenant
+   - Requires target tenant selection
+   - Validates target tenant exists
+
+3. **Delete Agents** (`delete_agents`):
+   - Permanently deletes tenant and all assigned agents
+   - Cascading deletion
+   - Irreversible operation
+
+**Implementation**: Deletion logic handled at application layer (not database CASCADE) to enforce explicit user choice via UI confirmation dialog.
+
+### API Endpoints
+
+**GET /api/tenants**
+- Returns all tenants with agent counts
+- Uses Drizzle `count()` aggregation
+- Sorted by creation date (newest first)
+
+**POST /api/tenants**
+- Creates new tenant with validated name
+- Returns 409 Conflict for duplicate names
+- Input validation: length (1-255), character whitelist
+
+**PATCH /api/tenants/[id]**
+- Updates tenant name with same validation as POST
+- Returns 404 if tenant not found
+
+**DELETE /api/tenants/[id]?action={action}&targetTenantId={id}**
+- Requires `action` parameter: `make_general`, `reassign`, or `delete_agents`
+- `targetTenantId` required only for `reassign` action
+- Validates target tenant existence for reassignment
+
+### UI Components
+
+**TenantModal** (`components/TenantModal.tsx`):
+- Simple create/edit form using shadcn Dialog
+- Single text input for tenant name
+- Validation feedback on errors
+
+**DeleteTenantDialog** (`components/DeleteTenantDialog.tsx`):
+- shadcn AlertDialog with RadioGroup for action selection
+- Shows agent count and impact warning
+- Conditional Select dropdown for reassignment target
+- Prevents deletion without choosing action
+
+**AgentModal Enhancement** (`components/AgentModal.tsx`):
+- Command+Popover combobox for tenant selection
+- Inline tenant creation (type new name to create)
+- Displays "General Purpose" when no tenant assigned
+- Controlled state separates `selectedTenantId` (UUID) from `inputValue` (string)
+- Prevents duplicate key errors by distinguishing select vs. create operations
+
+**Admin Page** (`app/admin/page.tsx`):
+- Two-tab interface using shadcn Tabs component
+- Tenant filter dropdown (shadcn Select) in agents view
+- Click-to-filter: clicking tenant name filters agents list
+- Color-coded tenant badges in agents table
+- Real-time agent count display per tenant
+
+### Security & Validation
+
+**Input Validation**:
+- Length: 1-255 characters (prevents empty names and buffer overflow)
+- Character whitelist: `/^[a-zA-Z0-9\s\-_.]+$/` (prevents SQL injection, XSS)
+- Applied to both POST and PATCH endpoints
+- Clear error messages for validation failures
+
+**SQL Injection Prevention**:
+- Uses Drizzle ORM `count()` function instead of raw SQL templates
+- Parameterized queries via Drizzle's query builder
+- No user input directly concatenated into SQL
+
+**Foreign Key Design**:
+- `ON DELETE NO ACTION` intentionally chosen over `ON DELETE SET NULL`
+- Enforces business rule: user must explicitly choose agent handling
+- Prevents accidental data loss from cascade operations
+- Application-level logic provides three explicit deletion options
 
 ---
 
@@ -753,6 +884,6 @@ shadcn/ui components include:
 
 ---
 
-**Version**: 1.2
-**Last Updated**: 2025-11-11 (FA-8: Added shadcn/ui component library infrastructure and documentation)
+**Version**: 1.3
+**Last Updated**: 2025-01-11 (v0.3.0: Added comprehensive tenant management system documentation)
 **Maintainer**: Project Team
