@@ -68,17 +68,8 @@ export async function POST(
       .values(values)
       .onConflictDoNothing();
 
-    // Return updated dashboard
-    const response = await fetch(
-      `${request.url.split("/agents")[0]}`,
-      { method: "GET" }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch updated dashboard");
-    }
-
-    return NextResponse.json(await response.json());
+    // Return success response
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error("Failed to add agents to dashboard:", error);
     return NextResponse.json(
@@ -127,17 +118,8 @@ export async function DELETE(
         )
       );
 
-    // Return updated dashboard
-    const response = await fetch(
-      `${request.url.split("/agents")[0]}`,
-      { method: "GET" }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch updated dashboard");
-    }
-
-    return NextResponse.json(await response.json());
+    // Return success response
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error("Failed to remove agents from dashboard:", error);
     return NextResponse.json(
