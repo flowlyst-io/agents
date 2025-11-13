@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { AgentModal } from "@/components/AgentModal";
 import { TenantModal } from "@/components/TenantModal";
 import { DeleteTenantDialog } from "@/components/DeleteTenantDialog";
+import { DashboardModal } from "@/components/DashboardModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -12,15 +13,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import type { Agent, Tenant } from "@/lib/db/schema";
+import { Badge } from "@/components/ui/badge";
+import type { Agent, Tenant, Dashboard } from "@/lib/db/schema";
 
 type TenantWithCount = Tenant & { agentCount: number };
+type DashboardWithAgents = Dashboard & { agents?: Agent[]; agentCount?: number };
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<"agents" | "tenants">("agents");
+  const [activeTab, setActiveTab] = useState<"agents" | "tenants" | "dashboards">("agents");
   const [agents, setAgents] = useState<Agent[]>([]);
   const [tenants, setTenants] = useState<TenantWithCount[]>([]);
+  const [dashboards, setDashboards] = useState<DashboardWithAgents[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Agent modal state
@@ -35,6 +49,17 @@ export default function AdminPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingTenant, setDeletingTenant] = useState<TenantWithCount | null>(null);
 
+  // Dashboard modal state
+  const [isDashboardModalOpen, setIsDashboardModalOpen] = useState(false);
+  const [editingDashboardId, setEditingDashboardId] = useState<string | null>(null);
+
+  // Dashboard UI state
+  const [dashboardTenantFilter, setDashboardTenantFilter] = useState<string>("all");
+  const [expandedDashboardId, setExpandedDashboardId] = useState<string | null>(null);
+  const [copiedDashboardId, setCopiedDashboardId] = useState<string | null>(null);
+  const [deletingDashboard, setDeletingDashboard] = useState<DashboardWithAgents | null>(null);
+  const [isDeleteDashboardDialogOpen, setIsDeleteDashboardDialogOpen] = useState(false);
+
   // Agent list UI state
   const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
   const [copiedAgentId, setCopiedAgentId] = useState<string | null>(null);
@@ -47,9 +72,10 @@ export default function AdminPage() {
 
   const fetchData = async () => {
     try {
-      const [agentsRes, tenantsRes] = await Promise.all([
+      const [agentsRes, tenantsRes, dashboardsRes] = await Promise.all([
         fetch("/api/agents"),
         fetch("/api/tenants"),
+        fetch("/api/dashboards"),
       ]);
 
       if (agentsRes.ok) {
@@ -60,6 +86,11 @@ export default function AdminPage() {
       if (tenantsRes.ok) {
         const tenantsData = await tenantsRes.json();
         setTenants(tenantsData);
+      }
+
+      if (dashboardsRes.ok) {
+        const dashboardsData = await dashboardsRes.json();
+        setDashboards(dashboardsData);
       }
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -246,6 +277,10 @@ export default function AdminPage() {
     setExpandedAgentId((prev) => (prev === agentId ? null : agentId));
   };
 
+  const toggleDashboardExpanded = (dashboardId: string) => {
+    setExpandedDashboardId((prev) => (prev === dashboardId ? null : dashboardId));
+  };
+
   const getEmbedSnippet = (slug: string) => {
     const origin =
       typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
@@ -281,11 +316,80 @@ export default function AdminPage() {
     setTenantFilter(tenantId);
   };
 
+  // Dashboard handlers
+  const handleCreateDashboard = () => {
+    setEditingDashboardId(null);
+    setIsDashboardModalOpen(true);
+  };
+
+  const handleEditDashboard = (dashboardId: string) => {
+    setEditingDashboardId(dashboardId);
+    setIsDashboardModalOpen(true);
+  };
+
+  const handleDeleteDashboard = (dashboard: DashboardWithAgents) => {
+    setDeletingDashboard(dashboard);
+    setIsDeleteDashboardDialogOpen(true);
+  };
+
+  const handleConfirmDeleteDashboard = async () => {
+    if (!deletingDashboard) return;
+
+    try {
+      const response = await fetch(`/api/dashboards/${deletingDashboard.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete dashboard");
+      }
+
+      await fetchData();
+      setIsDeleteDashboardDialogOpen(false);
+      setDeletingDashboard(null);
+    } catch (error) {
+      console.error("Failed to delete dashboard:", error);
+      alert(error instanceof Error ? error.message : "Failed to delete dashboard");
+    }
+  };
+
+  const getDashboardEmbedSnippet = (slug: string) => {
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    return `<iframe
+  src="${origin}/embed/dashboard/${slug}"
+  width="100%"
+  height="700"
+  style="border:none; border-radius:12px; overflow:hidden">
+</iframe>`;
+  };
+
+  const copyDashboardEmbed = async (text: string, dashboardId: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedDashboardId(dashboardId);
+      setTimeout(() => {
+        setCopiedDashboardId(null);
+      }, 2000);
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      alert("Failed to copy to clipboard");
+    }
+  };
+
   // Filter agents by tenant
   const filteredAgents = agents.filter((agent) => {
     if (tenantFilter === "all") return true;
     if (tenantFilter === "general") return agent.tenantId === null;
     return agent.tenantId === tenantFilter;
+  });
+
+  // Filter dashboards by tenant
+  const filteredDashboards = dashboards.filter((dashboard) => {
+    if (dashboardTenantFilter === "all") return true;
+    if (dashboardTenantFilter === "general") return dashboard.tenantId === null;
+    return dashboard.tenantId === dashboardTenantFilter;
   });
 
   if (isLoading) {
@@ -304,10 +408,11 @@ export default function AdminPage() {
           Admin Dashboard
         </h1>
 
-        <Tabs defaultValue="agents" value={activeTab} onValueChange={(value) => setActiveTab(value as "agents" | "tenants")}>
+        <Tabs defaultValue="agents" value={activeTab} onValueChange={(value) => setActiveTab(value as "agents" | "tenants" | "dashboards")}>
           <TabsList className="mb-6">
             <TabsTrigger value="agents">Agents</TabsTrigger>
             <TabsTrigger value="tenants">Tenants</TabsTrigger>
+            <TabsTrigger value="dashboards">Dashboards</TabsTrigger>
           </TabsList>
 
           {/* Agents Tab */}
@@ -562,6 +667,179 @@ export default function AdminPage() {
             </div>
             </div>
           </TabsContent>
+
+          {/* Dashboards Tab */}
+          <TabsContent value="dashboards">
+            <div>
+            {/* Dashboards Tab Header */}
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <label htmlFor="dashboard-tenant-filter" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Filter by Tenant:
+                </label>
+                <Select value={dashboardTenantFilter} onValueChange={setDashboardTenantFilter}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select tenant" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tenants</SelectItem>
+                    <SelectItem value="general">General Purpose</SelectItem>
+                    {tenants.map((tenant) => (
+                      <SelectItem key={tenant.id} value={tenant.id}>
+                        {tenant.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={handleCreateDashboard}>
+                + New Dashboard
+              </Button>
+            </div>
+
+            {/* Dashboards List */}
+            {filteredDashboards.length === 0 ? (
+              <div className="rounded-lg bg-white p-12 text-center shadow dark:bg-slate-800">
+                <p className="text-slate-600 dark:text-slate-400">
+                  {dashboardTenantFilter === "all"
+                    ? "No dashboards yet. Create your first dashboard to get started!"
+                    : "No dashboards found for this filter."}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-lg bg-white shadow dark:bg-slate-800">
+                <table className="w-full">
+                  <thead className="bg-slate-50 dark:bg-slate-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 dark:text-white">
+                        Title
+                      </th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 dark:text-white">
+                        Tenant
+                      </th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900 dark:text-white">
+                        Agents
+                      </th>
+                      <th className="px-6 py-3 text-right text-sm font-semibold text-slate-900 dark:text-white">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-600">
+                    {filteredDashboards.map((dashboard) => (
+                      <>
+                        <tr key={dashboard.id} className="hover:bg-slate-50 dark:hover:bg-slate-700">
+                          <td className="px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">
+                            {dashboard.title}
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            <Badge
+                              variant={dashboard.tenantId ? "default" : "secondary"}
+                              className={
+                                dashboard.tenantId
+                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                  : "bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200"
+                              }
+                            >
+                              {getTenantName(dashboard.tenantId)}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                            {dashboard.agentCount || 0}
+                          </td>
+                          <td className="px-6 py-4 text-right text-sm">
+                            <a
+                              href={`/embed/dashboard/${dashboard.slug}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mr-2 text-blue-600 hover:underline dark:text-blue-400"
+                            >
+                              Go to Dashboard
+                            </a>
+                            <button
+                              onClick={() => toggleDashboardExpanded(dashboard.id)}
+                              className="mr-2 text-blue-600 hover:underline dark:text-blue-400"
+                            >
+                              {expandedDashboardId === dashboard.id ? "Hide Embed" : "Show Embed"}
+                            </button>
+                            <button
+                              onClick={() => handleEditDashboard(dashboard.id)}
+                              className="mr-2 text-slate-600 hover:underline dark:text-slate-400"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteDashboard(dashboard)}
+                              className="text-red-600 hover:underline dark:text-red-400"
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                        {expandedDashboardId === dashboard.id && (
+                          <tr key={`${dashboard.id}-expanded`}>
+                            <td colSpan={4} className="bg-slate-50 px-6 py-4 dark:bg-slate-700">
+                              <div className="relative">
+                                <pre className="overflow-x-auto rounded bg-slate-100 p-3 pr-12 text-xs text-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                                  {getDashboardEmbedSnippet(dashboard.slug)}
+                                </pre>
+                                <div className="group absolute right-2 top-2">
+                                  <button
+                                    onClick={() => copyDashboardEmbed(getDashboardEmbedSnippet(dashboard.slug), dashboard.id)}
+                                    className="rounded p-2 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                                    aria-label={copiedDashboardId === dashboard.id ? "Copied!" : "Copy to clipboard"}
+                                  >
+                                    {copiedDashboardId === dashboard.id ? (
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        className="text-green-600 dark:text-green-400"
+                                      >
+                                        <path d="M20 6 9 17l-5-5" />
+                                      </svg>
+                                    ) : (
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      >
+                                        <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+                                        <path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+                                        <path d="M16 4h2a2 2 0 0 1 2 2v4" />
+                                        <path d="M21 14H11" />
+                                        <path d="m15 10-4 4 4 4" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                  <div className="pointer-events-none absolute bottom-full right-0 mb-2 hidden whitespace-nowrap rounded bg-slate-900 px-2 py-1 text-xs text-white group-hover:block dark:bg-slate-100 dark:text-slate-900">
+                                    {copiedDashboardId === dashboard.id ? "Copied!" : "Copy to clipboard"}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -589,6 +867,40 @@ export default function AdminPage() {
           onDelete={handleConfirmDeleteTenant}
           onClose={() => setIsDeleteDialogOpen(false)}
         />
+      )}
+
+      <DashboardModal
+        open={isDashboardModalOpen}
+        onOpenChange={setIsDashboardModalOpen}
+        dashboardId={editingDashboardId}
+        onSuccess={fetchData}
+      />
+
+      {deletingDashboard && (
+        <AlertDialog open={isDeleteDashboardDialogOpen} onOpenChange={setIsDeleteDashboardDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete &quot;{deletingDashboard.title}&quot;?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete this dashboard. This action cannot be undone.
+                {(deletingDashboard.agentCount || 0) > 0 && (
+                  <span className="block mt-2 font-medium">
+                    Note: The {deletingDashboard.agentCount} agent{deletingDashboard.agentCount !== 1 ? "s" : ""} in this dashboard will not be deleted.
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmDeleteDashboard}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete Dashboard
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );

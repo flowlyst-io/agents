@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Database-driven dashboard management system with admin UI for creating and managing client dashboards (FA-7)
+- Dashboards table with many-to-many relationship to agents via dashboard_agents junction table (FA-7)
+- Dashboard CRUD API endpoints at `/api/dashboards` with full create, read, update, delete operations (FA-7)
+- Dashboard-agent association management API at `/api/dashboards/[id]/agents` for linking/unlinking agents (FA-7)
+- Admin UI components: DashboardModal for create/edit operations and DashboardAgentPicker for multi-select agent assignment (FA-7)
+- Unified embed routes at `/embed/dashboard/[slug]` with smart routing (database-first, legacy CLIENT_WORKFLOWS fallback) (FA-7)
+- Random hex slug generation for dashboards matching agent security pattern (prevents enumeration attacks) (FA-7)
+- Show/Hide embed toggle with expandable iframe code preview and copy functionality (FA-7)
+- "Go to Dashboard" navigation link for quick access to live dashboard view (FA-7)
+- Badge component from shadcn/ui for visual status indicators (FA-7)
+
+### Changed
+- Consolidated dashboard routing from dual systems (`/embed/dashboard/db/[slug]` and `/embed/dashboard/[clientSlug]`) to single unified route (FA-7)
+- Removed `/db/` prefix from dashboard embed URLs for cleaner client-facing URLs (FA-7)
+- Updated admin UI with three-tab interface (Agents/Tenants/Dashboards) for comprehensive system management (FA-7)
+- Enhanced dashboard modal and agent picker UX with improved spacing hierarchy and clearer labels (FA-7)
+
+### Fixed
+- Dashboard embed route backwards compatibility maintained for legacy CLIENT_WORKFLOWS configurations (FA-7)
+
 ## [0.3.0] - 2025-01-11
 
 ### Added
