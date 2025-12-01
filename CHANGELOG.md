@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2025-12-01
+
+### Fixed
+- ChatKit input box partially hidden when navigating to agent from dashboard due to nested h-screen CSS conflict (FA-13)
+
 ## [0.4.0] - 2025-11-12
 
 ### Added
