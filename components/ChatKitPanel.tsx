@@ -319,7 +319,7 @@ export function ChatKitPanel({
   const blockingError = errors.script ?? activeError;
 
   return (
-    <main className="flex h-screen w-full flex-col overflow-hidden">
+    <main className="flex h-full w-full flex-col overflow-hidden">
       <div className="flex h-full w-full flex-col">
         <div className="relative flex h-full w-full flex-col overflow-hidden">
           <ChatKit
