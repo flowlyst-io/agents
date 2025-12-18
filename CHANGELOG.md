@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2025-12-18
+
+### Security
+- Fixed critical RCE vulnerability in React Server Components (CVE-2025-55182, CVE-2025-66478) by upgrading React and Next.js packages to patched versions
+
 ## [0.4.1] - 2025-12-01
 
 ### Fixed
