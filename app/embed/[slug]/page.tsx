@@ -23,5 +23,9 @@ export default async function EmbedPage({
     notFound();
   }
 
-  return <ChatKitPanel workflowId={agent[0].workflowId} />;
+  return (
+    <div className="h-screen w-full">
+      <ChatKitPanel workflowId={agent[0].workflowId} />
+    </div>
+  );
 }

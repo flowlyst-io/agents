@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2025-12-18
+
+### Fixed
+- Direct agent embed route showing blank black screen due to missing parent height for ChatKitPanel (FA-14)
+
 ## [0.4.2] - 2025-12-18
 
 ### Security
